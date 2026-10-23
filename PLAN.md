@@ -102,16 +102,24 @@ Docker
 
 - **One custom slot, not a colour library.** Each tool offers three presets (yellow/green/blue for
   highlights, amber/rose/teal for notes) plus a fourth slot holding whatever the user last picked.
-  The slot commits on the native picker's `change` event, so a colour is applied when the user
-  confirms it, not while they drag around the wheel.
+  The slot is what the `+` marks; a picked colour is *staged* and only applied when the user hits
+  OK in the small confirm popover, so cancelling a pick leaves the current colour untouched.
 - **The pointer previews the tool.** In highlight mode the cursor is a highlighter glyph tinted
   with the active colour; in note mode it is a crosshair. Both are plain inline SVG data URIs, so
   they follow a custom colour with no image assets.
 - **Thumbnails render at device pixels.** The rail canvas is sized `width × devicePixelRatio`
   (capped at 3) and scaled down by CSS. Drawing at 1x and letting the browser upscale is what made
   the rail look hazy next to the page canvas.
+- **"Searching" is derived, not stored.** The hook keeps the query that the current hits belong to;
+  `searching` is simply `query !== settledQuery`. Setting a boolean in an effect would let one
+  painted frame show stale results (e.g. `0/0` with live arrows) before the flag landed.
+- **The find bar only shows what is true right now.** While searching it shows the label alone; the
+  counter and the prev/next/clear controls appear once results settle, with their space reserved so
+  the toolbar never reflows.
 - **The sidebar indexes, it does not quote.** Note/highlight rows keep roughly eight words and an
-  ellipsis; the full text is in the tooltip and in the note popover.
+  ellipsis; the full text is in the tooltip and in the note popover. The cut happens in JS on word
+  boundaries (`previewText`), not with CSS `text-overflow`, which would slice a word in half. The
+  ellipsis appears only when something was actually left out.
 - **The find field has a fixed footprint.** A constant-width wrapper (with reserved space for the
   counter and clear button) means typing scrolls inside the input instead of widening the toolbar
   until it wraps.

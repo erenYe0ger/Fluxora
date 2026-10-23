@@ -13,15 +13,26 @@ export function useDocumentSearch(doc: PDFDocumentProxy | null, onJumpToPage: (p
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<PageHit[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
-  const [searching, setSearching] = useState(false)
+  // The query the current `hits` belong to. Searching is derived from the mismatch with
+  // the live query, so the "Searching…" state can never lag a frame behind typing.
+  const [settledQuery, setSettledQuery] = useState('')
   const cacheRef = useRef<TextCache>(new Map())
   const runIdRef = useRef(0)
+  // Held in a ref so a caller passing an inline callback cannot re-trigger the search
+  // effect on every render.
+  const jumpRef = useRef(onJumpToPage)
+  useEffect(() => {
+    jumpRef.current = onJumpToPage
+  }, [onJumpToPage])
+
+  const searching = query.trim() !== settledQuery
 
   // A new document invalidates cached text.
   useEffect(() => {
     cacheRef.current.clear()
     setHits([])
     setActiveIndex(0)
+    setSettledQuery('')
   }, [doc])
 
   const total = useMemo(() => hits.reduce((sum, hit) => sum + hit.count, 0), [hits])
@@ -40,6 +51,7 @@ export function useDocumentSearch(doc: PDFDocumentProxy | null, onJumpToPage: (p
     setQuery('')
     setHits([])
     setActiveIndex(0)
+    setSettledQuery('')
   }, [])
 
   // Debounced search across all pages. Sequential on purpose: keeps memory flat
@@ -49,11 +61,10 @@ export function useDocumentSearch(doc: PDFDocumentProxy | null, onJumpToPage: (p
     if (!doc || !term) {
       setHits([])
       setActiveIndex(0)
+      setSettledQuery('')
       return
     }
-
     const runId = ++runIdRef.current
-    setSearching(true)
 
     const timer = window.setTimeout(async () => {
       const pages: PageHit[] = []
@@ -75,12 +86,13 @@ export function useDocumentSearch(doc: PDFDocumentProxy | null, onJumpToPage: (p
       if (runId !== runIdRef.current) return
       setHits(pages)
       setActiveIndex(0)
-      setSearching(false)
-      if (pages.length > 0) onJumpToPage(pages[0].page)
+      // Only now do the results belong to `term`, which also ends the searching state.
+      setSettledQuery(term)
+      if (pages.length > 0) jumpRef.current(pages[0].page)
     }, 250)
 
     return () => window.clearTimeout(timer)
-  }, [doc, query, onJumpToPage])
+  }, [doc, query])
 
   const goTo = useCallback(
     (index: number) => {

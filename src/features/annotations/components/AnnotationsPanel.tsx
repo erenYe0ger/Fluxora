@@ -1,19 +1,11 @@
 import type { Annotation } from '../types'
+import { previewText } from '../lib/preview'
 import { HighlighterIcon, NoteIcon, CloseIcon } from '@shared/ui/icons'
 
 type Props = {
   annotations: Annotation[]
   onJump: (page: number) => void
   onDelete: (id: string) => void
-}
-
-const MAX_WORDS = 8
-
-/** Sidebar rows are a scannable index, not a second reading surface. */
-function preview(text: string): string {
-  const words = text.trim().split(/\s+/).filter(Boolean)
-  if (words.length <= MAX_WORDS) return words.join(' ')
-  return `${words.slice(0, MAX_WORDS).join(' ')}…`
 }
 
 export function AnnotationsPanel({ annotations, onJump, onDelete }: Props) {
@@ -61,7 +53,9 @@ export function AnnotationsPanel({ annotations, onJump, onDelete }: Props) {
                 <span className="text-[11px] font-medium text-muted">
                   Page {annotation.page} · {annotation.kind === 'note' ? 'Note' : 'Highlight'}
                 </span>
-                <p className="mt-0.5 truncate text-xs text-ink">{preview(annotation.text)}</p>
+                <p className="mt-0.5 text-xs leading-snug break-words text-ink">
+                  {previewText(annotation.text)}
+                </p>
               </button>
             </div>
 

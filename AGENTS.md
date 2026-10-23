@@ -117,6 +117,12 @@ that stops being "one feature's concern" moves down to `shared/` instead.
   Settings keeps the theme; the chosen colours are still stored there so they survive a reload.
 - **Undo history is session state** (`useAnnotations`). It is intentionally not persisted: an undo
   must never resurrect or remove something from a previous visit to the document.
+- **Derive transient state, do not store it.** If a UI state can be computed from existing state
+  (e.g. `searching = query !== settledQuery`), compute it. A boolean set inside an effect paints one
+  stale frame before it lands, which is how "no results" flashes before "searching".
+- **Keep effect dependencies honest.** If a hook takes a callback it calls later, hold it in a ref
+  rather than putting it in the effect's dependency list — an inline arrow from a caller would then
+  re-run (and, in the search hook, loop) on every render.
 
 ## Testing expectations
 
