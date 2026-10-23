@@ -15,19 +15,16 @@ export function zoomOut(scale: number): number {
 }
 
 /**
- * Scale that fits a whole page inside the viewport, keeping `inset` px free on every
- * side. This is a "contain" fit: it grows a small page up and shrinks a large one,
- * never exceeding the available box in either axis.
+ * Reading scale: the page fills the available width, minus `inset` px on each side so
+ * text never runs into the viewport edge. Vertical overflow simply scrolls.
  */
-export function fitPageScale(
-  available: { width: number; height: number },
-  page: { width: number; height: number },
+export function fitWidthScale(
+  containerWidth: number,
+  pageWidth: number,
   inset = 0,
   fallback = 1
 ): number {
-  const boxWidth = available.width - inset * 2
-  const boxHeight = available.height - inset * 2
-  if (boxWidth <= 0 || boxHeight <= 0 || page.width <= 0 || page.height <= 0) return fallback
-
-  return clampScale(Math.min(boxWidth / page.width, boxHeight / page.height))
+  const available = containerWidth - inset * 2
+  if (available <= 0 || pageWidth <= 0) return fallback
+  return clampScale(available / pageWidth)
 }

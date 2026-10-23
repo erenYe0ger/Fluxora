@@ -1,19 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
-import { HIGHLIGHT_PRESETS, isPresetColor, useSettingsStore } from '@features/settings'
 import { PlusIcon } from '@shared/ui/icons'
+import type { HighlightPreset } from '@features/settings'
 
 type Props = {
+  label: string
+  presets: HighlightPreset[]
   value: string
   onChange: (value: string) => void
+  recentColors: string[]
 }
 
 /**
- * Inline colour switcher for the highlight tool: presets in one row, and a popover
- * with the full picker plus recently used custom colours.
+ * Inline colour switcher for whichever annotation tool is active: presets in one row,
+ * plus a popover with the full picker and recently used custom colours.
  */
-export function HighlightPicker({ value, onChange }: Props) {
+export function ColorPicker({ label, presets, value, onChange, recentColors }: Props) {
   const [open, setOpen] = useState(false)
-  const recentColors = useSettingsStore((state) => state.recentColors)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,11 +34,17 @@ export function HighlightPicker({ value, onChange }: Props) {
     }
   }, [open])
 
-  const customColors = recentColors.filter((color) => !isPresetColor(color))
+  const isPreset = (color: string) =>
+    presets.some((preset) => preset.value.toLowerCase() === color.toLowerCase())
+  const customColors = recentColors.filter((color) => !isPreset(color))
 
   return (
-    <div ref={wrapperRef} className="animate-fade-in relative flex items-center gap-1.5 pl-1">
-      {HIGHLIGHT_PRESETS.map((preset) => {
+    <div
+      ref={wrapperRef}
+      className="animate-fade-in relative flex items-center gap-1.5 pl-1"
+      aria-label={label}
+    >
+      {presets.map((preset) => {
         const active = preset.value.toLowerCase() === value.toLowerCase()
         return (
           <button
@@ -57,7 +65,7 @@ export function HighlightPicker({ value, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        aria-label="Custom highlight colour"
+        aria-label={`Custom ${label.toLowerCase()}`}
         aria-expanded={open}
         title="Custom colour"
         className="flex h-6 w-6 items-center justify-center rounded-full border border-line text-muted transition hover:scale-110 hover:text-ink"
@@ -72,14 +80,14 @@ export function HighlightPicker({ value, onChange }: Props) {
       {open && (
         <div className="animate-pop absolute top-9 left-0 z-40 w-60 rounded-xl border border-line bg-surface p-3 shadow-lift">
           <p className="mb-2 text-[11px] font-medium tracking-wide text-muted uppercase">
-            Custom colour
+            {label}
           </p>
           <label className="flex items-center gap-2">
             <input
               type="color"
               value={value}
               onChange={(event) => onChange(event.target.value)}
-              aria-label="Pick a highlight colour"
+              aria-label={`Pick a colour for ${label.toLowerCase()}`}
               className="h-9 w-12 cursor-pointer rounded-md border border-line bg-surface-2"
             />
             <span className="font-mono text-xs text-muted">{value}</span>
@@ -105,10 +113,6 @@ export function HighlightPicker({ value, onChange }: Props) {
               </div>
             </>
           )}
-
-          <p className="mt-3 text-[11px] leading-relaxed text-muted">
-            Your choice becomes the default for new highlights.
-          </p>
         </div>
       )}
     </div>

@@ -200,3 +200,12 @@ export function SparkleIcon(props: IconProps) {
     </Svg>
   )
 }
+
+export function UndoIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H10" />
+      <path d="m8 5-4 4 4 4" />
+    </Svg>
+  )
+}

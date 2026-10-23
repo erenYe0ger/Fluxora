@@ -49,7 +49,7 @@ src/
     viewer/     PDF loading, canvas/text rendering, page nav, zoom
     search/     In-document text search (pure matching logic + UI glue)
     annotations/ Highlight & note model, storage, overlay rendering
-    settings/   Theme + highlight preferences (localStorage, cross-cutting)
+    settings/   Theme + tool colour preferences (localStorage, cross-cutting)
   shared/
     lib/        Framework-free helpers: idb wrapper, pdf.js bootstrap, formatting
     ui/         Dumb, reusable primitives (Button, IconButton, EmptyState, icons, ...)
@@ -80,7 +80,8 @@ that stops being "one feature's concern" moves down to `shared/` instead.
 4. **`src/styles/index.css` owns two contracts** that are easy to break and expensive to debug:
    the token map, and the pdf.js `.textLayer` sizing rules (see `PLAN.md`). Do not restyle them
    "for tidiness" — verify text selection still lines up if you touch the text layer.
-
+5. **Highlights stay translucent.** `.annotation-highlight` uses opacity + multiply so the marked
+   text remains readable. A solid `background-color` with no alpha is a bug, not a style choice.
 
 ## Naming conventions
 
@@ -109,6 +110,10 @@ that stops being "one feature's concern" moves down to `shared/` instead.
 - pdf.js objects are **not** React state; keep them in refs/effects and expose plain data to components.
 - Every user-visible failure gets an inline, actionable message — no silent `catch {}`.
 - Interactive elements need keyboard access and an accessible label.
+- **Annotation colour pickers live next to the tool that uses them**, not in the settings dialog.
+  Settings keeps the theme; the chosen colours are still stored there so they survive a reload.
+- **Undo history is session state** (`useAnnotations`). It is intentionally not persisted: an undo
+  must never resurrect or remove something from a previous visit to the document.
 
 ## Testing expectations
 

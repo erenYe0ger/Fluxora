@@ -93,7 +93,7 @@ export function PdfPageView({
       data-page={page.pageNumber}
       data-tool={tool}
       className={`relative mx-auto w-fit shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-black/10 ${
-        tool === 'note' ? 'cursor-copy' : ''
+        tool === 'note' ? 'cursor-crosshair' : ''
       }`}
       style={{
         width: viewport.width,
@@ -146,7 +146,7 @@ export function PdfPageView({
           <div className="mt-2 flex justify-end gap-2">
             <button
               type="button"
-              className="rounded-md px-2 py-1 text-muted transition hover:text-ink"
+              className="rounded-md px-2 py-1 text-danger transition hover:bg-danger-soft"
               onClick={() => setDraftNote(null)}
             >
               Cancel

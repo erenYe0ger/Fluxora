@@ -9,10 +9,12 @@ and drop notes — everything stays in your browser (IndexedDB). There is no bac
 
 - **Library** — drag & drop or pick PDFs, filter by name, see storage usage, delete.
 - **Reader** — continuous scrolling, crisp canvas rendering, real text layer for selection.
-- **Zoom** — fit-page (whole page, always with breathing room), zoom in/out, editable page box,
-  keyboard shortcuts.
+- **Zoom** — the page fills the reading width on open (with a gutter either side), then
+  zoom in/out, reset to 100%, editable page box, keyboard shortcuts.
 - **Search** — case-insensitive, per-document, match counter, next/previous, highlight overlay.
-- **Annotations** — text highlights in any colour you like, sticky notes, delete, JSON export.
+- **Highlights** — select text, pick any colour, translucent so the words stay legible.
+- **Notes** — click the page with the note tool, choose a colour per note tool, delete, JSON export.
+- **Undo** — `Ctrl/⌘ + Z` (or the toolbar button) reverses the last highlight, note or deletion.
 - **Themes** — dark (default) and light, switchable from Settings; the choice is remembered.
 - **Responsive** — sidebar collapses to an overlay on narrow screens.
 

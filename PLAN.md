@@ -65,20 +65,29 @@ Docker
 | M3 | Search + annotations | ✅ done |
 | M4 | Test suite + verify pipeline + prod image | ✅ done |
 | M5 | Themed UI, settings, custom highlight colours, fit-page fix | ✅ done |
+| M6 | Tool-local colours, translucent highlights, undo, fit-width default | ✅ done |
 
-### v0.2 implementation notes
+### v0.2 – v0.3 implementation notes
 
 - **Theme is a token swap, not `dark:` overrides.** Every colour is a CSS custom property
   (`--surface`, `--ink`, `--accent`, …) mapped into Tailwind through `@theme inline`, and
   `<html data-theme>` selects the palette. Dark is the default; `index.html` applies the saved
   theme before first paint so a light-mode user never sees a dark flash.
-- **Settings live in `features/settings`** (Zustand + `persist`) and hold only preferences
-  (theme, default highlight colour, recent custom colours). Documents stay in IndexedDB.
+- **Settings hold the theme only.** Colours belong to the tool that uses them, so the pickers sit
+  in the reader toolbar next to the highlight/note buttons; the chosen values still persist here.
 - **Colours are free-form.** Annotations store a hex string, so presets are just defaults and a
   custom colour is not a special case anywhere in the data model.
-- **"Fit" means fit-page, not fit-width.** `fitPageScale` takes the smaller of the two axis
-  ratios, so the page always fits the viewport with the scroll padding free on all four sides and
-  nothing is cropped.
+- **Highlights and notes keep separate palettes.** A highlighter colour that reads well as ink
+  (sun yellow) is a poor marker colour, so notes default to amber and the two are independent.
+- **Fit means "fill the reading width".** There is no Fit toggle: the reader computes
+  `fitWidthScale` (width minus a 24 px gutter each side) on open and on container resize, and any
+  manual zoom disables it for the session. Vertical breathing room comes from the scroll area's
+  own padding, not from a fitted height.
+- **Highlights are paint with opacity, not solid fills.** `.annotation-highlight` is translucent
+  plus `mix-blend-mode: multiply`; a solid fill hides the text it is supposed to mark.
+- **Undo is a session-scoped inverse stack.** Each add/delete pushes an entry (`add` → delete,
+  `delete` → re-save) capped at 50; the history is deliberately not persisted, so reloading a
+  document cannot "undo" something the user did before the reload.
 - **pdf.js text spans need size from CSS.** pdf.js 6 positions spans by percentage and publishes
   `--font-height`; the span `font-size` must be `var(--total-scale-factor) * var(--font-height)`.
   Without that rule the invisible spans keep the browser default size and every selection and

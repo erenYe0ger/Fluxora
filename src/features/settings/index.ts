@@ -2,7 +2,9 @@
 // render the settings menu or read the current preferences.
 export {
   HIGHLIGHT_PRESETS,
+  NOTE_PRESETS,
   DEFAULT_HIGHLIGHT_COLOR,
+  DEFAULT_NOTE_COLOR,
   isPresetColor,
   useSettingsStore
 } from './store'
