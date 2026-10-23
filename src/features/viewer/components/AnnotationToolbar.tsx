@@ -160,12 +160,16 @@ export function AnnotationToolbar({
               onClick={() => setTool(item.id)}
               aria-pressed={tool === item.id}
               title={item.hint}
-              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-muted transition-all hover:bg-elevated hover:text-ink"
+              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition-all ${
+                tool === item.id
+                  ? 'bg-accent text-accent-ink shadow-soft font-semibold'
+                  : 'text-muted hover:bg-elevated hover:text-ink'
+              }`}
             >
               <span className="flex h-5 w-5 shrink-0 items-center justify-center">
                 {item.icon}
               </span>
-              <span className="font-medium">{item.label}</span>
+              <span>{item.label}</span>
             </button>
           ))}
         </div>

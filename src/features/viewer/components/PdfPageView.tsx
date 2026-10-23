@@ -6,6 +6,7 @@ import { useTextLayer } from '../hooks/useTextLayer'
 import { useSearchRects } from '../hooks/useSearchRects'
 import { markerCursor, selectCursor, pencilCursor, textCursor } from '../lib/cursor'
 import { useInView } from '@shared/hooks/useInView'
+import { useViewerStore } from '../store/viewerStore'
 import type { Tool } from '../store/viewerStore'
 import type { Annotation, Rect } from '@features/annotations'
 import { clampRect, normalizeRect, toCssBox } from '@features/annotations'
@@ -183,10 +184,9 @@ export function PdfPageView({
     return null
   }
 
-  // Selection -> highlight. getClientRects gives one box per visual line, which we
-  // normalise against the page box so the highlight is zoom-independent.
+  // Read tool from the store directly to avoid stale closures during React 18's event batching.
   const handleMouseUp = (event: MouseEvent<HTMLDivElement>) => {
-    if (tool !== 'highlight' || !wrapperRef.current) return
+    if (useViewerStore.getState().tool !== 'highlight' || !wrapperRef.current) return
     const pageBox = wrapperRef.current.getBoundingClientRect()
 
     const now = Date.now()
@@ -224,8 +224,9 @@ export function PdfPageView({
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     if (!wrapperRef.current) return
     const pageBox = wrapperRef.current.getBoundingClientRect()
+    const currentTool = useViewerStore.getState().tool
 
-    if (tool === 'note') {
+    if (currentTool === 'note') {
       setDraftNote({
         x: (event.clientX - pageBox.left) / pageBox.width,
         y: (event.clientY - pageBox.top) / pageBox.height,
@@ -233,7 +234,7 @@ export function PdfPageView({
       })
     }
 
-    if (tool === 'text') {
+    if (currentTool === 'text') {
       setDraftText({
         x: (event.clientX - pageBox.left) / pageBox.width,
         y: (event.clientY - pageBox.top) / pageBox.height,
@@ -242,9 +243,11 @@ export function PdfPageView({
     }
   }
 
-  // Draw mode: track pointer events for drawing on the overlay canvas
+  // Draw mode: track pointer events for drawing on the overlay canvas.
+  // Read tool from the store directly (not the prop) to avoid stale closure during
+  // React 18's event batching — the prop won't update until after the handler returns.
   const handleDrawPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (tool !== 'draw' || !wrapperRef.current) return
+    if (useViewerStore.getState().tool !== 'draw' || !wrapperRef.current) return
     event.preventDefault()
     const bounds = wrapperRef.current.getBoundingClientRect()
     const nx = (event.clientX - bounds.left) / bounds.width
@@ -348,11 +351,11 @@ export function PdfPageView({
             ))
           )}
 
-          {/* Drawing overlay canvas */}
+          {/* Drawing overlay canvas — receives pointer events and delegates to the wrapper handler */}
           {tool === 'draw' && (
             <canvas
               ref={drawCanvasRef}
-              className="pointer-events-none absolute inset-0"
+              className="absolute inset-0"
               style={{ width: viewport.width, height: viewport.height }}
               width={Math.round(viewport.width)}
               height={Math.round(viewport.height)}
