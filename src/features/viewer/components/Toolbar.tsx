@@ -1,9 +1,25 @@
+import type { ReactNode } from 'react'
+import { useCallback } from 'react'
 import { useViewerStore } from '../store/viewerStore'
 import type { Tool } from '../store/viewerStore'
 import { Button } from '@shared/ui/Button'
+import { IconButton } from '@shared/ui/IconButton'
+import {
+  ArrowLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CursorIcon,
+  DownloadIcon,
+  HighlighterIcon,
+  MinusIcon,
+  NoteIcon,
+  PanelIcon,
+  PlusIcon
+} from '@shared/ui/icons'
 import { SearchBar } from '@features/search'
-import { HIGHLIGHT_COLORS } from '@features/annotations'
-import type { HighlightColor } from '@features/annotations'
+import type { SearchBarState } from '@features/search'
+import { SettingsMenu, useSettingsStore } from '@features/settings'
+import { HighlightPicker } from './HighlightPicker'
 
 type Props = {
   fileName: string
@@ -11,120 +27,154 @@ type Props = {
   onBack: () => void
   onJumpToPage: (page: number) => void
   onExport: () => void
-  search: {
-    query: string
-    setQuery: (value: string) => void
-    total: number
-    activeIndex: number
-    searching: boolean
-    next: () => void
-    previous: () => void
-    clear: () => void
-  }
+  search: SearchBarState
 }
 
-const TOOLS: { id: Tool; label: string; hint: string }[] = [
-  { id: 'select', label: 'Select', hint: 'Select text' },
-  { id: 'highlight', label: 'Highlight', hint: 'Select text, then release to highlight' },
-  { id: 'note', label: 'Note', hint: 'Click the page to drop a note' }
+const TOOLS: { id: Tool; label: string; hint: string; icon: ReactNode }[] = [
+  { id: 'select', label: 'Select', hint: 'Select text (V)', icon: <CursorIcon /> },
+  {
+    id: 'highlight',
+    label: 'Highlight',
+    hint: 'Select text to highlight (H)',
+    icon: <HighlighterIcon />
+  },
+  { id: 'note', label: 'Note', hint: 'Click the page to add a note (N)', icon: <NoteIcon /> }
 ]
 
 export function Toolbar({ fileName, numPages, onBack, onJumpToPage, onExport, search }: Props) {
-  const { scale, tool, color, sidebarOpen, currentPage } = useViewerStore()
-  const { setTool, setColor, zoomIn, zoomOut, setScale, setFitMode, toggleSidebar } = useViewerStore()
+  const scale = useViewerStore((state) => state.scale)
+  const fitMode = useViewerStore((state) => state.fitMode)
+  const tool = useViewerStore((state) => state.tool)
+  const sidebarOpen = useViewerStore((state) => state.sidebarOpen)
+  const currentPage = useViewerStore((state) => state.currentPage)
+  const setTool = useViewerStore((state) => state.setTool)
+  const toggleSidebar = useViewerStore((state) => state.toggleSidebar)
+  const zoomIn = useViewerStore((state) => state.zoomIn)
+  const zoomOut = useViewerStore((state) => state.zoomOut)
+  const setScale = useViewerStore((state) => state.setScale)
+  const setFitMode = useViewerStore((state) => state.setFitMode)
+
+  const highlightColor = useSettingsStore((state) => state.highlightColor)
+  const setHighlightColor = useSettingsStore((state) => state.setHighlightColor)
+
+  const jump = useCallback(
+    (page: number) => {
+      if (page >= 1 && page <= numPages) onJumpToPage(page)
+    },
+    [numPages, onJumpToPage]
+  )
 
   return (
-    <header className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-      <Button variant="ghost" onClick={onBack} aria-label="Back to library">
-        ← Library
-      </Button>
-      <span className="max-w-48 truncate text-sm font-medium" title={fileName}>
-        {fileName}
-      </span>
+    <header className="sticky top-0 z-30 border-b border-line bg-surface/85 backdrop-blur-xl">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+        <IconButton label="Back to library" onClick={onBack} size="sm">
+          <ArrowLeftIcon />
+        </IconButton>
+        <IconButton
+          label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          active={sidebarOpen}
+          onClick={toggleSidebar}
+          size="sm"
+        >
+          <PanelIcon />
+        </IconButton>
 
-      <div className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-700" />
+        <div className="ml-1 hidden min-w-0 sm:block">
+          <p className="max-w-52 truncate text-sm font-medium" title={fileName}>
+            {fileName}
+          </p>
+          <p className="text-[11px] text-muted">
+            Page {currentPage} of {numPages}
+          </p>
+        </div>
 
-      <Button variant="ghost" onClick={toggleSidebar} aria-pressed={sidebarOpen} aria-label="Toggle sidebar">
-        ☰
-      </Button>
+        <div className="mx-1 hidden h-6 w-px bg-line sm:block" />
 
-      <div className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-700" />
-
-      <nav className="flex items-center gap-1" aria-label="Tools">
-        {TOOLS.map((item) => (
-          <Button
-            key={item.id}
-            variant={tool === item.id ? 'primary' : 'ghost'}
-            title={item.hint}
-            aria-pressed={tool === item.id}
-            onClick={() => setTool(item.id)}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </nav>
-
-      {tool === 'highlight' && (
-        <div className="flex items-center gap-1" aria-label="Highlight colour">
-          {(Object.keys(HIGHLIGHT_COLORS) as HighlightColor[]).map((name) => (
-            <button
-              key={name}
-              type="button"
-              aria-label={`${name} highlight`}
-              aria-pressed={color === name}
-              onClick={() => setColor(name)}
-              className={`h-5 w-5 rounded-full border ${
-                color === name ? 'ring-2 ring-blue-500 ring-offset-1' : 'border-black/10'
-              }`}
-              style={{ backgroundColor: HIGHLIGHT_COLORS[name] }}
+        <div className="flex items-center gap-1">
+          <IconButton label="Previous page" size="sm" onClick={() => jump(currentPage - 1)}>
+            <ChevronLeftIcon />
+          </IconButton>
+          <label className="flex items-center gap-1 text-xs text-muted">
+            <input
+              type="number"
+              min={1}
+              max={numPages}
+              value={currentPage}
+              aria-label="Go to page"
+              onChange={(event) => jump(Number(event.target.value))}
+              className="h-8 w-12 rounded-md border border-line bg-surface-2 px-1 text-center text-ink transition focus:border-accent/60 focus:ring-2 focus:ring-accent/25 focus:outline-none"
             />
+            <span className="whitespace-nowrap">/ {numPages}</span>
+          </label>
+          <IconButton label="Next page" size="sm" onClick={() => jump(currentPage + 1)}>
+            <ChevronRightIcon />
+          </IconButton>
+        </div>
+
+        <div className="mx-1 hidden h-6 w-px bg-line md:block" />
+
+        <div
+          role="toolbar"
+          aria-label="Annotation tools"
+          className="flex items-center gap-1 rounded-xl border border-line bg-surface-2 p-1"
+        >
+          {TOOLS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTool(item.id)}
+              aria-pressed={tool === item.id}
+              title={item.hint}
+              className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition duration-150 ${
+                tool === item.id
+                  ? 'bg-accent text-accent-ink shadow-soft'
+                  : 'text-muted hover:bg-elevated hover:text-ink'
+              }`}
+            >
+              {item.icon}
+              <span className="hidden lg:inline">{item.label}</span>
+            </button>
           ))}
         </div>
-      )}
 
-      <div className="ml-auto flex flex-wrap items-center gap-2">
-        <SearchBar search={search} />
+        {tool === 'highlight' && (
+          <HighlightPicker value={highlightColor} onChange={setHighlightColor} />
+        )}
 
-        <div className="flex items-center rounded border border-slate-300 dark:border-slate-700">
-          <Button variant="ghost" onClick={zoomOut} aria-label="Zoom out">
-            −
-          </Button>
-          <button
-            type="button"
-            onClick={() => setScale(1)}
-            className="w-14 text-center text-xs"
-            title="Reset to 100%"
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <SearchBar search={search} />
+
+          <div className="flex items-center rounded-xl border border-line bg-surface-2 p-1">
+            <IconButton label="Zoom out" size="sm" onClick={zoomOut}>
+              <MinusIcon />
+            </IconButton>
+            <button
+              type="button"
+              onClick={() => setScale(1)}
+              title="Reset to 100%"
+              className="h-8 w-14 rounded-md text-xs font-medium text-muted transition hover:bg-elevated hover:text-ink"
+            >
+              {Math.round(scale * 100)}%
+            </button>
+            <IconButton label="Zoom in" size="sm" onClick={zoomIn}>
+              <PlusIcon />
+            </IconButton>
+          </div>
+
+          <Button
+            size="sm"
+            variant={fitMode === 'fit' ? 'primary' : 'secondary'}
+            onClick={() => setFitMode('fit')}
+            title="Fit the whole page in view"
           >
-            {Math.round(scale * 100)}%
-          </button>
-          <Button variant="ghost" onClick={zoomIn} aria-label="Zoom in">
-            +
+            Fit
           </Button>
+
+          <IconButton label="Export annotations as JSON" size="sm" onClick={onExport}>
+            <DownloadIcon />
+          </IconButton>
+          <SettingsMenu compact />
         </div>
-        <Button variant="ghost" onClick={() => setFitMode('width')} title="Fit page width">
-          Fit width
-        </Button>
-
-        <label className="flex items-center gap-1 text-xs">
-          Page
-          <input
-            type="number"
-            min={1}
-            max={numPages}
-            value={currentPage}
-            aria-label="Current page"
-            className="w-14 rounded border border-slate-300 bg-transparent px-1 py-0.5 text-center dark:border-slate-700"
-            onChange={(event) => {
-              const page = Number(event.target.value)
-              if (page >= 1 && page <= numPages) onJumpToPage(page)
-            }}
-          />
-          <span className="text-slate-500">/ {numPages}</span>
-        </label>
-
-        <Button variant="ghost" onClick={onExport} title="Export annotations as JSON">
-          Export
-        </Button>
       </div>
     </header>
   )

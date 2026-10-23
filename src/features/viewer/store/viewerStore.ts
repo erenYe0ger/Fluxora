@@ -1,16 +1,14 @@
 import { create } from 'zustand'
-import type { HighlightColor } from '@features/annotations'
 import { clampScale, zoomIn, zoomOut } from '../lib/zoom'
 
 export type Tool = 'select' | 'highlight' | 'note'
 export type SidebarTab = 'thumbnails' | 'annotations'
-export type FitMode = 'width' | 'custom'
+export type FitMode = 'fit' | 'custom'
 
 type ViewerState = {
   scale: number
   fitMode: FitMode
   tool: Tool
-  color: HighlightColor
   sidebarOpen: boolean
   sidebarTab: SidebarTab
   currentPage: number
@@ -22,7 +20,6 @@ type ViewerState = {
   zoomOut: () => void
   setFitMode: (mode: FitMode) => void
   setTool: (tool: Tool) => void
-  setColor: (color: HighlightColor) => void
   toggleSidebar: () => void
   setSidebarTab: (tab: SidebarTab) => void
   setCurrentPage: (page: number) => void
@@ -30,10 +27,9 @@ type ViewerState = {
 }
 
 const initial = {
-  scale: 1.25,
-  fitMode: 'width' as FitMode,
+  scale: 1,
+  fitMode: 'fit' as FitMode,
   tool: 'select' as Tool,
-  color: 'yellow' as HighlightColor,
   sidebarOpen: true,
   sidebarTab: 'thumbnails' as SidebarTab,
   currentPage: 1
@@ -48,7 +44,6 @@ export const useViewerStore = create<ViewerState>((set) => ({
   zoomOut: () => set((state) => ({ scale: zoomOut(state.scale), fitMode: 'custom' })),
   setFitMode: (fitMode) => set({ fitMode }),
   setTool: (tool) => set({ tool }),
-  setColor: (color) => set({ color }),
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setSidebarTab: (sidebarTab) => set({ sidebarTab, sidebarOpen: true }),
   setCurrentPage: (currentPage) => set({ currentPage }),

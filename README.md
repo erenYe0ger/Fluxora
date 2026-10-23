@@ -9,9 +9,11 @@ and drop notes — everything stays in your browser (IndexedDB). There is no bac
 
 - **Library** — drag & drop or pick PDFs, filter by name, see storage usage, delete.
 - **Reader** — continuous scrolling, crisp canvas rendering, real text layer for selection.
-- **Zoom** — fit width, zoom in/out, editable page box, keyboard shortcuts.
+- **Zoom** — fit-page (whole page, always with breathing room), zoom in/out, editable page box,
+  keyboard shortcuts.
 - **Search** — case-insensitive, per-document, match counter, next/previous, highlight overlay.
-- **Annotations** — 4-colour text highlight, sticky notes, delete, JSON export.
+- **Annotations** — text highlights in any colour you like, sticky notes, delete, JSON export.
+- **Themes** — dark (default) and light, switchable from Settings; the choice is remembered.
 - **Responsive** — sidebar collapses to an overlay on narrow screens.
 
 ## Quick start (Docker, recommended)

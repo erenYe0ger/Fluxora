@@ -1,8 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { LibraryPage } from '@features/library/pages/LibraryPage'
 import { ReaderPage } from '@features/viewer/pages/ReaderPage'
+import { useThemeSync } from '@features/settings'
 
 export function App() {
+  // Keeps <html data-theme> in step with the saved preference.
+  useThemeSync()
+
   return (
     <BrowserRouter>
       <Routes>

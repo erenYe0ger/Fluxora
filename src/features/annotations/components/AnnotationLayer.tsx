@@ -8,8 +8,9 @@ type Props = {
 }
 
 /**
- * Read-only overlay: highlights are derived from normalised rects, notes are pins.
- * Interaction (creating) lives in PdfPageView because it needs the selection.
+ * Read-only overlay: highlights are drawn from normalised rects, notes are pins.
+ * Highlights must not capture pointer events, otherwise they block text selection
+ * on the layer underneath.
  */
 export function AnnotationLayer({ annotations, onDelete }: Props) {
   const [openNote, setOpenNote] = useState<string | null>(null)
@@ -19,14 +20,12 @@ export function AnnotationLayer({ annotations, onDelete }: Props) {
       {annotations.map((annotation) => {
         if (annotation.kind === 'highlight') {
           return (
-            <div key={annotation.id}>
+            <div key={annotation.id} aria-hidden>
               {annotation.rects.map((rect, index) => (
                 <div
                   key={`${annotation.id}-${index}`}
-                  className="annotation-highlight pointer-events-auto absolute cursor-pointer"
+                  className="annotation-highlight absolute"
                   style={{ ...toCssBox(rect), backgroundColor: annotation.color }}
-                  title={annotation.text}
-                  onDoubleClick={() => onDelete(annotation.id)}
                 />
               ))}
             </div>
@@ -36,23 +35,28 @@ export function AnnotationLayer({ annotations, onDelete }: Props) {
         return (
           <div
             key={annotation.id}
-            className="pointer-events-auto absolute"
+            className="animate-pop pointer-events-auto absolute"
             style={{ left: `${annotation.x * 100}%`, top: `${annotation.y * 100}%` }}
           >
             <button
               type="button"
               aria-label="Toggle note"
-              className="flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-500 bg-amber-300 text-xs shadow"
-              onClick={() => setOpenNote((current) => (current === annotation.id ? null : annotation.id))}
+              title={annotation.text}
+              className="flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/80 shadow-md transition duration-150 hover:scale-110"
+              style={{ backgroundColor: annotation.color }}
+              onClick={() =>
+                setOpenNote((current) => (current === annotation.id ? null : annotation.id))
+              }
             >
-              ✎
+              <span className="h-1.5 w-1.5 rounded-full bg-black/50" />
             </button>
+
             {openNote === annotation.id && (
-              <div className="absolute left-4 top-0 w-48 rounded border border-slate-300 bg-white p-2 text-xs shadow-lg dark:border-slate-600 dark:bg-slate-800">
-                <p className="mb-2 whitespace-pre-wrap">{annotation.text}</p>
+              <div className="animate-pop absolute top-4 left-3 w-56 rounded-xl border border-line bg-surface p-3 text-xs shadow-lift">
+                <p className="mb-2 whitespace-pre-wrap text-ink">{annotation.text}</p>
                 <button
                   type="button"
-                  className="text-red-600 hover:underline"
+                  className="font-medium text-danger transition hover:underline"
                   onClick={() => {
                     onDelete(annotation.id)
                     setOpenNote(null)

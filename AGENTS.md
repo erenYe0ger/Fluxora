@@ -49,11 +49,12 @@ src/
     viewer/     PDF loading, canvas/text rendering, page nav, zoom
     search/     In-document text search (pure matching logic + UI glue)
     annotations/ Highlight & note model, storage, overlay rendering
+    settings/   Theme + highlight preferences (localStorage, cross-cutting)
   shared/
     lib/        Framework-free helpers: idb wrapper, pdf.js bootstrap, formatting
-    ui/         Dumb, reusable primitives (Button, IconButton, EmptyState, ...)
+    ui/         Dumb, reusable primitives (Button, IconButton, EmptyState, icons, ...)
     hooks/      Reusable React hooks with no feature knowledge
-  styles/       Global CSS + Tailwind entry
+  styles/       Design tokens (light/dark palettes), Tailwind entry, pdf.js layer CSS
 tests/          Test setup, fixtures, fakes shared by test suites
 ```
 
@@ -62,8 +63,24 @@ Dependency rule: `features/* → shared/*` and `app → features`. `shared/` nev
 
 A feature may read another feature only through its public barrel (`features/x/index.ts`).
 `viewer` is the composition surface: it is the only feature allowed to import `annotations`
-and `search`, and it imports them exactly as the barrels export them. Anything that stops
-being "one feature's concern" moves down to `shared/` instead.
+and `search`, and it imports them exactly as the barrels export them. `settings` is
+cross-cutting: any screen may render `<SettingsMenu />` or read `useSettingsStore`. Anything
+that stops being "one feature's concern" moves down to `shared/` instead.
+
+## Styling rules
+
+1. **Use design tokens, never raw palette classes.** Colours come from `--bg`, `--surface`,
+   `--surface-2`, `--elevated`, `--line`, `--line-strong`, `--ink`, `--muted`, `--accent`,
+   `--accent-soft`, `--danger` exposed as `bg-surface`, `text-muted`, `border-line`, … A new
+   colour means a new token in both palettes, not a one-off hex in a component.
+2. **Never introduce `dark:` variants for chrome.** The palette swap already handles themes;
+   `dark:` is reserved for cases where dark mode needs a *different* design, not a different colour.
+3. **Animation is opt-in and short.** Use the `animate-fade-up` / `animate-pop` / `animate-slide-in`
+   utilities (150–450 ms, ease-out). Respect `prefers-reduced-motion`, which is handled globally.
+4. **`src/styles/index.css` owns two contracts** that are easy to break and expensive to debug:
+   the token map, and the pdf.js `.textLayer` sizing rules (see `PLAN.md`). Do not restyle them
+   "for tidiness" — verify text selection still lines up if you touch the text layer.
+
 
 ## Naming conventions
 

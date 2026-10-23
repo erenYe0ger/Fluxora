@@ -1,5 +1,6 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Button } from '@shared/ui/Button'
+import { UploadIcon } from '@shared/ui/icons'
 
 type Props = {
   onFiles: (files: FileList | null) => void
@@ -7,11 +8,13 @@ type Props = {
 
 export function ImportDropzone({ onFiles }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
 
   const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      onFiles(e.dataTransfer.files)
+    (event: React.DragEvent) => {
+      event.preventDefault()
+      setDragging(false)
+      onFiles(event.dataTransfer.files)
     },
     [onFiles]
   )
@@ -19,30 +22,65 @@ export function ImportDropzone({ onFiles }: Props) {
   return (
     <div
       onDrop={onDrop}
-      onDragOver={(e) => e.preventDefault()}
-      className="flex flex-col items-center justify-center gap-3 rounded border-2 border-dashed border-slate-300 p-8 text-center dark:border-slate-700"
-      role="button"
-      tabIndex={0}
-      aria-label="Import PDF files"
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+      onDragOver={(event) => {
+        event.preventDefault()
+        setDragging(true)
+      }}
+      onDragLeave={() => setDragging(false)}
+      onClick={() => inputRef.current?.click()}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
           inputRef.current?.click()
         }
       }}
+      role="button"
+      tabIndex={0}
+      aria-label="Import PDF files"
+      className={`group relative flex cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border-2 border-dashed px-6 py-12 text-center transition duration-200 focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:outline-none ${
+        dragging
+          ? 'scale-[1.01] border-accent bg-accent-soft'
+          : 'border-line bg-surface hover:border-accent/50 hover:bg-surface-2'
+      }`}
     >
-      <p className="text-sm text-slate-500">
-        Drop PDFs here or click to browse
-      </p>
-      <Button type="button" onClick={() => inputRef.current?.click()}>
+      <span
+        className={`flex h-14 w-14 items-center justify-center rounded-2xl border transition duration-300 ${
+          dragging
+            ? 'border-accent/50 bg-accent text-accent-ink'
+            : 'border-line bg-surface-2 text-accent group-hover:-translate-y-0.5'
+        }`}
+      >
+        <UploadIcon className="h-6 w-6" />
+      </span>
+
+      <div>
+        <p className="text-sm font-medium text-ink">
+          {dragging ? 'Drop to import' : 'Drop PDFs here, or browse'}
+        </p>
+        <p className="mt-1 text-xs text-muted">
+          Files stay in this browser. Nothing is uploaded, ever.
+        </p>
+      </div>
+
+      <Button
+        type="button"
+        variant={dragging ? 'primary' : 'secondary'}
+        size="sm"
+        onClick={(event) => {
+          event.stopPropagation()
+          inputRef.current?.click()
+        }}
+      >
         Choose files
       </Button>
+
       <input
         ref={inputRef}
         type="file"
         accept="application/pdf"
         multiple
         className="hidden"
-        onChange={(e) => onFiles(e.target.files)}
+        onChange={(event) => onFiles(event.target.files)}
       />
     </div>
   )
