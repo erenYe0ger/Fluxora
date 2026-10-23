@@ -162,10 +162,11 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditTex
         if (annotation.kind === 'text') {
           const textAnnotation = annotation as TextAnnotation
           const isEditing = editingId === annotation.id
+          const interactive = tool === 'select'
           return (
             <div
               key={annotation.id}
-              className="absolute pointer-events-auto group"
+              className={`absolute group${interactive ? ' pointer-events-auto' : ''}`}
               style={{
                 left: `${textAnnotation.x * 100}%`,
                 top: `${textAnnotation.y * 100}%`
@@ -236,7 +237,7 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditTex
           <div
             key={annotation.id}
             data-note-root={annotation.id}
-            className="animate-pop pointer-events-auto absolute"
+            className="animate-pop absolute"
             style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%` }}
           >
             <button

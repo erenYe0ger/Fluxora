@@ -247,7 +247,8 @@ export function PdfPageView({
   // Read tool from the store directly (not the prop) to avoid stale closure during
   // React 18's event batching — the prop won't update until after the handler returns.
   const handleDrawPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (useViewerStore.getState().tool !== 'draw' || !wrapperRef.current) return
+    const currentTool = useViewerStore.getState().tool
+    if (currentTool !== 'draw' || !wrapperRef.current) return
     event.preventDefault()
     const bounds = wrapperRef.current.getBoundingClientRect()
     const nx = (event.clientX - bounds.left) / bounds.width
