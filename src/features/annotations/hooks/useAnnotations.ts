@@ -134,6 +134,19 @@ export function useAnnotations(docId: string | undefined) {
     [annotations]
   )
 
+  const updateTextAnnotation = useCallback(
+    async (id: string, text: string) => {
+      const target = annotations.find((a) => a.id === id)
+      if (!target || target.kind !== 'text') return
+      const updated: TextAnnotation = { ...(target as TextAnnotation), text }
+      await saveAnnotation(updated)
+      setAnnotations((prev) =>
+        prev.map((annotation) => (annotation.id === id ? updated : annotation))
+      )
+    },
+    [annotations]
+  )
+
   /** Undo the most recent add or delete by applying its inverse. */
   const undo = useCallback(async () => {
     const entry = historyRef.current[historyRef.current.length - 1]
@@ -157,6 +170,7 @@ export function useAnnotations(docId: string | undefined) {
     addNote,
     addDraw,
     addText,
+    updateTextAnnotation,
     removeAnnotation,
     moveAnnotation,
     undo,

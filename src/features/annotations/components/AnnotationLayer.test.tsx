@@ -19,13 +19,14 @@ const NOTE: NoteAnnotation = {
 function renderLayer() {
   const onDelete = vi.fn()
   const onMove = vi.fn()
+  const onEditText = vi.fn()
   render(
     <div style={{ position: 'relative', width: 400, height: 600 }}>
-      <AnnotationLayer annotations={[NOTE]} tool="select" onDelete={onDelete} onMove={onMove} />
+      <AnnotationLayer annotations={[NOTE]} tool="select" onDelete={onDelete} onMove={onMove} onEditText={onEditText} />
       <button type="button">somewhere else</button>
     </div>
   )
-  return { onDelete, onMove }
+  return { onDelete, onMove, onEditText }
 }
 
 const popover = () => screen.queryByText('Delete note')

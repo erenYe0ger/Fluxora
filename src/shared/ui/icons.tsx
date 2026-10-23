@@ -222,7 +222,8 @@ export function PencilIcon(props: IconProps) {
 export function TextIcon(props: IconProps) {
   return (
     <Svg {...props}>
-      <path d="M9 4v16M9 4h6M9 12h6" />
+      {/* Clean serif T glyph: vertical stem + horizontal top bar */}
+      <path d="M11 4.5h4M13 4.5v15" />
     </Svg>
   )
 }

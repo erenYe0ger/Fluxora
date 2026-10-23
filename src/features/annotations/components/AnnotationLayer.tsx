@@ -14,6 +14,7 @@ type Props = {
   tool: 'select' | 'highlight' | 'note' | 'draw' | 'text'
   onDelete: (id: string) => void
   onMove: (id: string, x: number, y: number) => void
+  onEditText: (id: string, text: string) => void
 }
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
@@ -25,11 +26,42 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
  * on the layer underneath. Pins drag in select mode only, so the note tool keeps
  * placing new notes instead of grabbing the ones already on the page.
  */
-export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) {
+export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditText }: Props) {
   const [openNote, setOpenNote] = useState<string | null>(null)
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
   const dragRef = useRef<{ id: string; x: number; y: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
+
+  // Focus the edit input whenever editing starts.
+  useEffect(() => {
+    if (editingId) {
+      setEditValue(
+        (annotations.find((a) => a.id === editingId && a.kind === 'text') as TextAnnotation | undefined)
+          ?.text ?? ''
+      )
+      requestAnimationFrame(() => editInputRef.current?.select())
+    }
+  }, [editingId, annotations])
+
+  // Close editing on Escape; save on Enter.
+  useEffect(() => {
+    if (!editingId) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setEditingId(null)
+      }
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault()
+        onEditText(editingId, editValue.trim() || editValue)
+        setEditingId(null)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editingId, editValue, onEditText])
 
   // An open note closes on Escape or on a click anywhere outside it, like any popover.
   useEffect(() => {
@@ -129,27 +161,57 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
 
         if (annotation.kind === 'text') {
           const textAnnotation = annotation as TextAnnotation
+          const isEditing = editingId === annotation.id
           return (
             <div
               key={annotation.id}
-              className="absolute pointer-events-auto cursor-pointer group"
+              className="absolute pointer-events-auto group"
               style={{
                 left: `${textAnnotation.x * 100}%`,
-                top: `${textAnnotation.y * 100}%`,
-                color: textAnnotation.color,
-                fontFamily: textAnnotation.fontFamily,
-                fontSize: `${textAnnotation.fontSize}px`,
-                fontWeight: textAnnotation.bold ? 'bold' : 'normal',
-                fontStyle: textAnnotation.italic ? 'italic' : 'normal',
-                textDecoration: textAnnotation.underline ? 'underline' : 'none'
+                top: `${textAnnotation.y * 100}%`
               }}
             >
-              <span className="whitespace-pre-wrap">{textAnnotation.text}</span>
-              {tool === 'select' && (
+              {isEditing ? (
+                <input
+                  ref={editInputRef}
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={() => {
+                    onEditText(annotation.id, editValue.trim() || editValue)
+                    setEditingId(null)
+                  }}
+                  className="rounded border border-accent bg-surface px-1.5 py-0.5 text-xs outline-none focus:ring-2 focus:ring-accent/40"
+                  style={{
+                    color: textAnnotation.color,
+                    fontFamily: textAnnotation.fontFamily,
+                    fontSize: `${textAnnotation.fontSize}px`,
+                    fontWeight: textAnnotation.bold ? 'bold' : 'normal',
+                    fontStyle: textAnnotation.italic ? 'italic' : 'normal',
+                    textDecoration: textAnnotation.underline ? 'underline' : 'none'
+                  }}
+                />
+              ) : (
+                <span
+                  onDoubleClick={() => setEditingId(annotation.id)}
+                  className="cursor-text whitespace-pre-wrap"
+                  style={{
+                    color: textAnnotation.color,
+                    fontFamily: textAnnotation.fontFamily,
+                    fontSize: `${textAnnotation.fontSize}px`,
+                    fontWeight: textAnnotation.bold ? 'bold' : 'normal',
+                    fontStyle: textAnnotation.italic ? 'italic' : 'normal',
+                    textDecoration: textAnnotation.underline ? 'underline' : 'none'
+                  }}
+                >
+                  {textAnnotation.text}
+                </span>
+              )}
+              {tool === 'select' && !isEditing && (
                 <button
                   type="button"
                   aria-label="Delete text"
-                  className="absolute -top-2 -right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-danger text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-600"
+                  className="absolute -top-2 -right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-danger text-white opacity-0 transition group-hover:flex group-hover:opacity-100 hover:bg-red-600"
                   onClick={() => onDelete(annotation.id)}
                 >
                   ×

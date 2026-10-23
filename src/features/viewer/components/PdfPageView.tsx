@@ -47,6 +47,7 @@ type Props = {
   }) => void
   onDeleteAnnotation: (id: string) => void
   onMoveAnnotation: (id: string, x: number, y: number) => void
+  onEditText: (id: string, text: string) => void
 }
 
 /** Composer size in px; used to keep the box inside the page near the right/bottom edge. */
@@ -82,7 +83,8 @@ export function PdfPageView({
   onDraw,
   onText,
   onDeleteAnnotation,
-  onMoveAnnotation
+  onMoveAnnotation,
+  onEditText
 }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -332,6 +334,7 @@ export function PdfPageView({
             tool={tool}
             onDelete={onDeleteAnnotation}
             onMove={onMoveAnnotation}
+            onEditText={onEditText}
           />
 
           {searchRects.map((rects, index) =>
