@@ -1,30 +1,19 @@
-import type { ReactNode } from 'react'
 import { useCallback } from 'react'
 import { useViewerStore } from '../store/viewerStore'
-import type { Tool } from '../store/viewerStore'
 import { IconButton } from '@shared/ui/IconButton'
 import {
   ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CursorIcon,
   DownloadIcon,
-  HighlighterIcon,
   MinusIcon,
-  NoteIcon,
   PanelIcon,
   PlusIcon,
   UndoIcon
 } from '@shared/ui/icons'
 import { SearchBar } from '@features/search'
 import type { SearchBarState } from '@features/search'
-import {
-  HIGHLIGHT_PRESETS,
-  NOTE_PRESETS,
-  SettingsMenu,
-  useSettingsStore
-} from '@features/settings'
-import { ColorPicker } from './ColorPicker'
+import { SettingsMenu } from '@features/settings'
 
 type Props = {
   fileName: string
@@ -37,17 +26,6 @@ type Props = {
   search: SearchBarState
 }
 
-const TOOLS: { id: Tool; label: string; hint: string; icon: ReactNode }[] = [
-  { id: 'select', label: 'Select', hint: 'Select text (V)', icon: <CursorIcon /> },
-  {
-    id: 'highlight',
-    label: 'Highlight',
-    hint: 'Select text to highlight (H)',
-    icon: <HighlighterIcon />
-  },
-  { id: 'note', label: 'Note', hint: 'Click the page to add a note (N)', icon: <NoteIcon /> }
-]
-
 export function Toolbar({
   fileName,
   numPages,
@@ -59,23 +37,12 @@ export function Toolbar({
   search
 }: Props) {
   const scale = useViewerStore((state) => state.scale)
-  const tool = useViewerStore((state) => state.tool)
   const sidebarOpen = useViewerStore((state) => state.sidebarOpen)
   const currentPage = useViewerStore((state) => state.currentPage)
-  const setTool = useViewerStore((state) => state.setTool)
   const toggleSidebar = useViewerStore((state) => state.toggleSidebar)
   const zoomIn = useViewerStore((state) => state.zoomIn)
   const zoomOut = useViewerStore((state) => state.zoomOut)
   const setScale = useViewerStore((state) => state.setScale)
-
-  const highlightColor = useSettingsStore((state) => state.highlightColor)
-  const noteColor = useSettingsStore((state) => state.noteColor)
-  const customHighlightColor = useSettingsStore((state) => state.customHighlightColor)
-  const customNoteColor = useSettingsStore((state) => state.customNoteColor)
-  const setHighlightColor = useSettingsStore((state) => state.setHighlightColor)
-  const setNoteColor = useSettingsStore((state) => state.setNoteColor)
-  const setCustomHighlightColor = useSettingsStore((state) => state.setCustomHighlightColor)
-  const setCustomNoteColor = useSettingsStore((state) => state.setCustomNoteColor)
 
   const jump = useCallback(
     (page: number) => {
@@ -130,54 +97,6 @@ export function Toolbar({
             <ChevronRightIcon />
           </IconButton>
         </div>
-
-        <div className="mx-1 hidden h-6 w-px bg-line md:block" />
-
-        <div
-          role="toolbar"
-          aria-label="Annotation tools"
-          className="flex items-center gap-1 rounded-xl border border-line bg-surface-2 p-1"
-        >
-          {TOOLS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTool(item.id)}
-              aria-pressed={tool === item.id}
-              title={item.hint}
-              className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition duration-150 ${
-                tool === item.id
-                  ? 'bg-accent text-accent-ink shadow-soft'
-                  : 'text-muted hover:bg-elevated hover:text-ink'
-              }`}
-            >
-              {item.icon}
-              <span className="hidden lg:inline">{item.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Colour belongs to the active tool, and each tool keeps its own. */}
-        {tool === 'highlight' && (
-          <ColorPicker
-            label="Highlight colour"
-            presets={HIGHLIGHT_PRESETS}
-            value={highlightColor}
-            customColor={customHighlightColor}
-            onChange={setHighlightColor}
-            onCustomColor={setCustomHighlightColor}
-          />
-        )}
-        {tool === 'note' && (
-          <ColorPicker
-            label="Note colour"
-            presets={NOTE_PRESETS}
-            value={noteColor}
-            customColor={customNoteColor}
-            onChange={setNoteColor}
-            onCustomColor={setCustomNoteColor}
-          />
-        )}
 
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <SearchBar search={search} />

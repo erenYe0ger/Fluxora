@@ -1,10 +1,10 @@
-﻿import { useRef, useState } from 'react'
-import type { MouseEvent } from 'react'
+import { useRef, useState, useEffect } from 'react'
+import type { MouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import type { PDFPageProxy } from 'pdfjs-dist'
 import { usePageRender } from '../hooks/usePageRender'
 import { useTextLayer } from '../hooks/useTextLayer'
 import { useSearchRects } from '../hooks/useSearchRects'
-import { markerCursor, selectCursor } from '../lib/cursor'
+import { markerCursor, selectCursor, pencilCursor, textCursor } from '../lib/cursor'
 import { useInView } from '@shared/hooks/useInView'
 import type { Tool } from '../store/viewerStore'
 import type { Annotation, Rect } from '@features/annotations'
@@ -20,8 +20,31 @@ type Props = {
   activeMatch: number | null
   /** Drives the marker cursor so the pointer shows the colour about to be applied. */
   highlightColor: string
+  /** Drives the pencil cursor colour. */
+  drawColor: string
+  /** Drawing line thickness. */
+  drawThickness: number
+  /** Drives the text cursor colour. */
+  textColor: string
+  textFontFamily: string
+  textFontSize: number
+  textBold: boolean
+  textItalic: boolean
+  textUnderline: boolean
   onHighlight: (input: { rects: Rect[]; text: string }) => void
   onNote: (input: { x: number; y: number; text: string }) => void
+  onDraw: (input: { paths: string[]; color: string; thickness: number }) => void
+  onText: (input: {
+    x: number
+    y: number
+    text: string
+    color: string
+    fontFamily: string
+    fontSize: number
+    bold: boolean
+    italic: boolean
+    underline: boolean
+  }) => void
   onDeleteAnnotation: (id: string) => void
   onMoveAnnotation: (id: string, x: number, y: number) => void
 }
@@ -46,15 +69,34 @@ export function PdfPageView({
   searchQuery,
   activeMatch,
   highlightColor,
+  drawColor,
+  drawThickness,
+  textColor,
+  textFontFamily,
+  textFontSize,
+  textBold,
+  textItalic,
+  textUnderline,
   onHighlight,
   onNote,
+  onDraw,
+  onText,
   onDeleteAnnotation,
   onMoveAnnotation
 }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const textLayerRef = useRef<HTMLDivElement>(null)
+  const drawCanvasRef = useRef<HTMLCanvasElement>(null)
   const inView = useInView(wrapperRef)
+
+  // Use refs for drawing state to avoid closure issues
+  const drawingRef = useRef<{
+    isDrawing: boolean
+    path: { x: number; y: number }[]
+    color: string
+    thickness: number
+  }>({ isDrawing: false, path: [], color: drawColor, thickness: drawThickness })
 
   const viewport = page.getViewport({ scale })
   // Both effects key off `inView`: the canvas/text layer mount only once the page
@@ -70,9 +112,59 @@ export function PdfPageView({
   })
 
   const [draftNote, setDraftNote] = useState<{ x: number; y: number; text: string } | null>(null)
+  const [draftText, setDraftText] = useState<{
+    x: number
+    y: number
+    text: string
+  } | null>(null)
+  const [, setForceRender] = useState(0)
+
   // Distinguishes "select again" from "remove this highlight" without relying on the
   // dblclick event, which would arrive after we already created a duplicate.
   const lastClickRef = useRef<{ time: number; x: number; y: number } | null>(null)
+
+  // Sync drawing settings with ref
+  useEffect(() => {
+    drawingRef.current.color = drawColor
+    drawingRef.current.thickness = drawThickness
+  }, [drawColor, drawThickness])
+
+  // Real-time draw canvas rendering
+  useEffect(() => {
+    if (tool !== 'draw' || !drawCanvasRef.current || !wrapperRef.current) return
+    const canvas = drawCanvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      const drawing = drawingRef.current
+      if (drawing.isDrawing && drawing.path.length > 0) {
+        ctx.strokeStyle = drawing.color
+        ctx.lineWidth = drawing.thickness
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.beginPath()
+        const bounds = wrapperRef.current!.getBoundingClientRect()
+        const w = bounds.width
+        const h = bounds.height
+        drawing.path.forEach((point, index) => {
+          const px = point.x * w
+          const py = point.y * h
+          if (index === 0) {
+            ctx.moveTo(px, py)
+          } else {
+            ctx.lineTo(px, py)
+          }
+        })
+        ctx.stroke()
+      }
+    }
+
+    // Re-render on state change for drawing
+    const interval = setInterval(render, 16)
+    return () => clearInterval(interval)
+  }, [tool])
 
   const pageAnnotations = annotations.filter((annotation) => annotation.page === page.pageNumber)
 
@@ -128,13 +220,68 @@ export function PdfPageView({
   }
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (tool !== 'note' || !wrapperRef.current) return
+    if (!wrapperRef.current) return
     const pageBox = wrapperRef.current.getBoundingClientRect()
-    setDraftNote({
-      x: (event.clientX - pageBox.left) / pageBox.width,
-      y: (event.clientY - pageBox.top) / pageBox.height,
-      text: ''
-    })
+
+    if (tool === 'note') {
+      setDraftNote({
+        x: (event.clientX - pageBox.left) / pageBox.width,
+        y: (event.clientY - pageBox.top) / pageBox.height,
+        text: ''
+      })
+    }
+
+    if (tool === 'text') {
+      setDraftText({
+        x: (event.clientX - pageBox.left) / pageBox.width,
+        y: (event.clientY - pageBox.top) / pageBox.height,
+        text: ''
+      })
+    }
+  }
+
+  // Draw mode: track pointer events for drawing on the overlay canvas
+  const handleDrawPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (tool !== 'draw' || !wrapperRef.current) return
+    event.preventDefault()
+    const bounds = wrapperRef.current.getBoundingClientRect()
+    const nx = (event.clientX - bounds.left) / bounds.width
+    const ny = (event.clientY - bounds.top) / bounds.height
+
+    drawingRef.current.isDrawing = true
+    drawingRef.current.path = [{ x: nx, y: ny }]
+    setForceRender((n) => n + 1)
+
+    const track = (pointer: PointerEvent) => {
+      if (!wrapperRef.current) return
+      const b = wrapperRef.current.getBoundingClientRect()
+      const px = (pointer.clientX - b.left) / b.width
+      const py = (pointer.clientY - b.top) / b.height
+      drawingRef.current.path.push({ x: px, y: py })
+      setForceRender((n) => n + 1)
+    }
+
+    const release = () => {
+      const drawing = drawingRef.current
+      drawingRef.current.isDrawing = false
+      setForceRender((n) => n + 1)
+
+      if (drawing.path.length > 1) {
+        // Convert path points to SVG path strings
+        const paths = [`M ${drawing.path[0].x} ${drawing.path[0].y}`]
+        drawing.path.slice(1).forEach((point) => {
+          paths.push(`L ${point.x} ${point.y}`)
+        })
+        onDraw({ paths, color: drawing.color, thickness: drawing.thickness })
+      }
+      drawing.path = []
+
+      window.removeEventListener('pointermove', track)
+      window.removeEventListener('pointerup', release)
+    }
+
+    window.addEventListener('pointermove', track)
+    window.addEventListener('pointerup', release)
   }
 
   // Keep the composer fully inside the page: open down-right from the cursor when there is
@@ -150,6 +297,15 @@ export function PdfPageView({
     }
   })()
 
+  // Determine cursor based on tool
+  const pageCursor = (() => {
+    if (tool === 'draw') return pencilCursor(drawColor)
+    if (tool === 'text') return textCursor()
+    if (tool === 'highlight') return markerCursor(highlightColor)
+    if (tool === 'note') return 'crosshair'
+    return selectCursor()
+  })()
+
   return (
     <div
       id={`page-${page.pageNumber}`}
@@ -161,15 +317,11 @@ export function PdfPageView({
         width: viewport.width,
         height: viewport.height,
         boxShadow: 'var(--page-shadow)',
-        cursor:
-          tool === 'note'
-            ? 'crosshair'
-            : tool === 'highlight'
-              ? markerCursor(highlightColor)
-              : selectCursor()
+        cursor: pageCursor
       }}
       onMouseUp={handleMouseUp}
       onClick={handleClick}
+      onPointerDown={handleDrawPointerDown}
     >
       {inView ? (
         <>
@@ -191,6 +343,17 @@ export function PdfPageView({
                 style={toCssBox(rect)}
               />
             ))
+          )}
+
+          {/* Drawing overlay canvas */}
+          {tool === 'draw' && (
+            <canvas
+              ref={drawCanvasRef}
+              className="pointer-events-none absolute inset-0"
+              style={{ width: viewport.width, height: viewport.height }}
+              width={Math.round(viewport.width)}
+              height={Math.round(viewport.height)}
+            />
           )}
         </>
       ) : (
@@ -238,9 +401,84 @@ export function PdfPageView({
           </div>
         </div>
       )}
+
+      {draftText && (
+        <div
+          className="animate-pop absolute z-30 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
+          style={{
+            left: Math.min(draftText.x * viewport.width, viewport.width - 200),
+            top: Math.min(draftText.y * viewport.height, viewport.height - 100),
+            minWidth: 150
+          }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <input
+            autoFocus
+            type="text"
+            placeholder="Type text…"
+            className="w-full rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
+            value={draftText.text}
+            onChange={(event) => setDraftText({ ...draftText, text: event.target.value })}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setDraftText(null)
+              if (event.key === 'Enter') {
+                if (draftText.text.trim()) {
+                  onText({
+                    x: draftText.x,
+                    y: draftText.y,
+                    text: draftText.text.trim(),
+                    color: textColor,
+                    fontFamily: textFontFamily,
+                    fontSize: textFontSize,
+                    bold: textBold,
+                    italic: textItalic,
+                    underline: textUnderline
+                  })
+                }
+                setDraftText(null)
+              }
+            }}
+            style={{
+              fontFamily: textFontFamily,
+              fontSize: textFontSize,
+              fontWeight: textBold ? 'bold' : 'normal',
+              fontStyle: textItalic ? 'italic' : 'normal',
+              textDecoration: textUnderline ? 'underline' : 'none',
+              color: textColor
+            }}
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-md px-2 py-1 text-danger transition hover:bg-danger-soft"
+              onClick={() => setDraftText(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-accent px-2.5 py-1 font-medium text-accent-ink transition hover:brightness-110 disabled:opacity-45"
+              disabled={!draftText.text.trim()}
+              onClick={() => {
+                onText({
+                  x: draftText.x,
+                  y: draftText.y,
+                  text: draftText.text.trim(),
+                  color: textColor,
+                  fontFamily: textFontFamily,
+                  fontSize: textFontSize,
+                  bold: textBold,
+                  italic: textItalic,
+                  underline: textUnderline
+                })
+                setDraftText(null)
+              }}
+            >
+              Add text
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-
-

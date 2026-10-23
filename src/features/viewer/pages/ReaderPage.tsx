@@ -5,6 +5,7 @@ import { usePdfPages } from '../hooks/usePdfPages'
 import { PdfPageView } from '../components/PdfPageView'
 import { ThumbnailRail } from '../components/ThumbnailRail'
 import { Toolbar } from '../components/Toolbar'
+import { AnnotationToolbar } from '../components/AnnotationToolbar'
 import { useViewerStore } from '../store/viewerStore'
 import { useDocumentRecord } from '../hooks/useDocumentRecord'
 import { useReaderLayout } from '../hooks/useReaderLayout'
@@ -34,8 +35,29 @@ export function ReaderPage() {
   const reset = useViewerStore((state) => state.reset)
   const toggleSidebar = useViewerStore((state) => state.toggleSidebar)
 
+  // Colors
   const highlightColor = useSettingsStore((state) => state.highlightColor)
   const noteColor = useSettingsStore((state) => state.noteColor)
+  const drawColor = useSettingsStore((state) => state.drawColor)
+  const drawThickness = useSettingsStore((state) => state.drawThickness)
+  const customDrawColor = useSettingsStore((state) => state.customDrawColor)
+  const setDrawColor = useSettingsStore((state) => state.setDrawColor)
+  const setDrawThickness = useSettingsStore((state) => state.setDrawThickness)
+  const setCustomDrawColor = useSettingsStore((state) => state.setCustomDrawColor)
+  const textColor = useSettingsStore((state) => state.textColor)
+  const textFontFamily = useSettingsStore((state) => state.textFontFamily)
+  const textFontSize = useSettingsStore((state) => state.textFontSize)
+  const textBold = useSettingsStore((state) => state.textBold)
+  const textItalic = useSettingsStore((state) => state.textItalic)
+  const textUnderline = useSettingsStore((state) => state.textUnderline)
+  const customTextColor = useSettingsStore((state) => state.customTextColor)
+  const setTextColor = useSettingsStore((state) => state.setTextColor)
+  const setTextFontFamily = useSettingsStore((state) => state.setTextFontFamily)
+  const setTextFontSize = useSettingsStore((state) => state.setTextFontSize)
+  const setTextBold = useSettingsStore((state) => state.setTextBold)
+  const setTextItalic = useSettingsStore((state) => state.setTextItalic)
+  const setTextUnderline = useSettingsStore((state) => state.setTextUnderline)
+  const setCustomTextColor = useSettingsStore((state) => state.setCustomTextColor)
 
   const { containerRef } = useReaderLayout(pages)
 
@@ -167,6 +189,14 @@ export function ReaderPage() {
                   scale={scale}
                   tool={tool}
                   highlightColor={highlightColor}
+                  drawColor={drawColor}
+                  drawThickness={drawThickness}
+                  textColor={textColor}
+                  textFontFamily={textFontFamily}
+                  textFontSize={textFontSize}
+                  textBold={textBold}
+                  textItalic={textItalic}
+                  textUnderline={textUnderline}
                   annotations={annotations.annotations}
                   searchQuery={search.query}
                   activeMatch={activeMatch}
@@ -188,6 +218,22 @@ export function ReaderPage() {
                       ...input
                     })
                   }
+                  onDraw={(input) =>
+                    annotations.addDraw({
+                      docId: meta?.id ?? '',
+                      page: page.pageNumber,
+                      kind: 'draw',
+                      ...input
+                    })
+                  }
+                  onText={(input) =>
+                    annotations.addText({
+                      docId: meta?.id ?? '',
+                      page: page.pageNumber,
+                      kind: 'text',
+                      ...input
+                    })
+                  }
                   onDeleteAnnotation={annotations.removeAnnotation}
                   onMoveAnnotation={annotations.moveAnnotation}
                 />
@@ -195,6 +241,30 @@ export function ReaderPage() {
             })}
           </div>
         </main>
+
+        {/* Right sidebar with annotation tools */}
+        <AnnotationToolbar
+          onDrawColorChange={setDrawColor}
+          onDrawThicknessChange={setDrawThickness}
+          drawColor={drawColor}
+          drawThickness={drawThickness}
+          customDrawColor={customDrawColor}
+          onCustomDrawColor={setCustomDrawColor}
+          onTextColorChange={setTextColor}
+          onTextFontFamilyChange={setTextFontFamily}
+          onTextFontSizeChange={setTextFontSize}
+          onTextBoldChange={setTextBold}
+          onTextItalicChange={setTextItalic}
+          onTextUnderlineChange={setTextUnderline}
+          textColor={textColor}
+          textFontFamily={textFontFamily}
+          textFontSize={textFontSize}
+          textBold={textBold}
+          textItalic={textItalic}
+          textUnderline={textUnderline}
+          customTextColor={customTextColor}
+          onCustomTextColor={setCustomTextColor}
+        />
       </div>
     </div>
   )

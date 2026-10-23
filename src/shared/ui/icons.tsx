@@ -209,3 +209,22 @@ export function UndoIcon(props: IconProps) {
     </Svg>
   )
 }
+
+export function PencilIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
+    </Svg>
+  )
+}
+
+export function TextIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 7V4h16v3" />
+      <path d="M12 4v16" />
+      <path d="M8 20h8" />
+    </Svg>
+  )
+}

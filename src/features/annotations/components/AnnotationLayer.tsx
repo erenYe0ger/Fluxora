@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import type { Annotation, NoteAnnotation } from '../types'
+import type {
+  Annotation,
+  NoteAnnotation,
+  DrawAnnotation,
+  TextAnnotation
+} from '../types'
 import { toCssBox } from '../lib/geometry'
 import { NoteIcon } from '@shared/ui/icons'
 
 type Props = {
   annotations: Annotation[]
-  tool: 'select' | 'highlight' | 'note'
+  tool: 'select' | 'highlight' | 'note' | 'draw' | 'text'
   onDelete: (id: string) => void
   onMove: (id: string, x: number, y: number) => void
 }
@@ -14,7 +19,8 @@ type Props = {
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
 
 /**
- * Read-only overlay: highlights are drawn from normalised rects, notes are pins.
+ * Read-only overlay: highlights are drawn from normalised rects, notes are pins,
+ * draws are SVG paths, text is rendered text.
  * Highlights must not capture pointer events, otherwise they block text selection
  * on the layer underneath. Pins drag in select mode only, so the note tool keeps
  * placing new notes instead of grabbing the ones already on the page.
@@ -63,7 +69,6 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
       }
       dragRef.current = next
       setDrag(next)
-
     }
     const release = () => {
       window.removeEventListener('pointermove', track)
@@ -95,10 +100,69 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
           )
         }
 
+        if (annotation.kind === 'draw') {
+          const drawAnnotation = annotation as DrawAnnotation
+          return (
+            <svg
+              key={annotation.id}
+              className="absolute inset-0 h-full w-full pointer-events-none"
+              viewBox="0 0 1 1"
+              preserveAspectRatio="none"
+              aria-hidden
+            >
+              {drawAnnotation.paths.map((path, index) => (
+                <path
+                  key={`${annotation.id}-${index}`}
+                  d={path}
+                  fill="none"
+                  stroke={drawAnnotation.color}
+                  strokeWidth={drawAnnotation.thickness * 0.01}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              ))}
+            </svg>
+          )
+        }
+
+        if (annotation.kind === 'text') {
+          const textAnnotation = annotation as TextAnnotation
+          return (
+            <div
+              key={annotation.id}
+              className="absolute pointer-events-auto cursor-pointer group"
+              style={{
+                left: `${textAnnotation.x * 100}%`,
+                top: `${textAnnotation.y * 100}%`,
+                color: textAnnotation.color,
+                fontFamily: textAnnotation.fontFamily,
+                fontSize: `${textAnnotation.fontSize * 0.01}px`,
+                fontWeight: textAnnotation.bold ? 'bold' : 'normal',
+                fontStyle: textAnnotation.italic ? 'italic' : 'normal',
+                textDecoration: textAnnotation.underline ? 'underline' : 'none'
+              }}
+            >
+              <span className="whitespace-pre-wrap">{textAnnotation.text}</span>
+              {tool === 'select' && (
+                <button
+                  type="button"
+                  aria-label="Delete text"
+                  className="absolute -top-2 -right-2 hidden h-5 w-5 items-center justify-center rounded-full bg-danger text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-600"
+                  onClick={() => onDelete(annotation.id)}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )
+        }
+
+        // Note annotation
+        const noteAnnotation = annotation as NoteAnnotation
         const position =
           drag && drag.id === annotation.id
             ? { x: drag.x, y: drag.y }
-            : { x: annotation.x, y: annotation.y }
+            : { x: noteAnnotation.x, y: noteAnnotation.y }
         const dragging = Boolean(drag && drag.id === annotation.id)
         // Flip the popover towards the inside of the page near the right/bottom edges.
         const openLeft = position.x > 0.62
@@ -115,7 +179,7 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
               type="button"
               aria-label="Toggle note"
               title={annotation.text}
-              onPointerDown={(event) => startDrag(event, annotation)}
+              onPointerDown={(event) => startDrag(event, noteAnnotation)}
               className={`flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/85 text-black/60 shadow-md transition duration-150 hover:scale-110 ${
                 tool === 'select' ? 'cursor-grab active:cursor-grabbing' : ''
               } ${dragging ? 'scale-110 cursor-grabbing' : ''}`}
@@ -152,5 +216,3 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
     </div>
   )
 }
-
-

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { clampScale, zoomIn, zoomOut } from '../lib/zoom'
 
-export type Tool = 'select' | 'highlight' | 'note'
+export type Tool = 'select' | 'highlight' | 'note' | 'draw' | 'text'
 export type SidebarTab = 'thumbnails' | 'annotations'
 
 type ViewerState = {

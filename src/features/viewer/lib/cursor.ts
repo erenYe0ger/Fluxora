@@ -27,3 +27,22 @@ export function selectCursor(): string {
     `</svg>`
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 5 3, default`
 }
+
+/** Pencil cursor for draw mode. */
+export function pencilCursor(color: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">` +
+    `<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" fill="${color}" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/>` +
+    `<path d="m15 5 4 4" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>` +
+    `</svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 17 3, crosshair`
+}
+
+/** Text I-beam cursor for text mode. */
+export function textCursor(): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">` +
+    `<path d="M12 4v16M8 20h8" stroke="#000" stroke-width="2" stroke-linecap="round"/>` +
+    `</svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, text`
+}
