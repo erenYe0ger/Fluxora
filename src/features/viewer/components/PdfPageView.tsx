@@ -44,8 +44,10 @@ export function PdfPageView({
   const inView = useInView(wrapperRef)
 
   const viewport = page.getViewport({ scale })
-  usePageRender({ page, scale, canvasRef })
-  const textVersion = useTextLayer({ page, scale, containerRef: textLayerRef })
+  // Both effects key off `inView`: the canvas/text layer mount only once the page
+  // approaches the viewport, so the refs must be part of the dependency chain.
+  usePageRender({ page, scale, canvasRef, enabled: inView })
+  const textVersion = useTextLayer({ page, scale, containerRef: textLayerRef, enabled: inView })
   const searchRects = useSearchRects({
     pageElement: wrapperRef.current,
     textLayerElement: textLayerRef.current,

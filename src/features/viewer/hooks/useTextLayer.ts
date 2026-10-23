@@ -6,6 +6,8 @@ type Props = {
   page: PDFPageProxy | null
   scale: number
   containerRef: React.RefObject<HTMLDivElement | null>
+  /** False while the page is far off-screen; the container is not mounted yet. */
+  enabled: boolean
 }
 
 /**
@@ -13,12 +15,12 @@ type Props = {
  * Returns a version counter so dependent effects (search highlights) can rerun
  * once the spans actually exist.
  */
-export function useTextLayer({ page, scale, containerRef }: Props): number {
+export function useTextLayer({ page, scale, containerRef, enabled }: Props): number {
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
     const container = containerRef.current
-    if (!page || !container) return
+    if (!enabled || !page || !container) return
 
     let cancelled = false
     container.innerHTML = ''
@@ -47,7 +49,7 @@ export function useTextLayer({ page, scale, containerRef }: Props): number {
       layer.cancel()
       container.innerHTML = ''
     }
-  }, [page, scale, containerRef])
+  }, [page, scale, containerRef, enabled])
 
   return version
 }

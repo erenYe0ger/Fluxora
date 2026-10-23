@@ -5,14 +5,16 @@ type Props = {
   page: PDFPageProxy | null
   scale: number
   canvasRef: React.RefObject<HTMLCanvasElement | null>
+  /** False while the page is far off-screen; the canvas is not mounted yet. */
+  enabled: boolean
 }
 
 // Render the page to canvas; text layer is handled separately by useTextLayer.
-export function usePageRender({ page, scale, canvasRef }: Props) {
+export function usePageRender({ page, scale, canvasRef, enabled }: Props) {
   const renderTaskRef = useRef<unknown>(null)
 
   const render = useCallback(async () => {
-    if (!page || !canvasRef.current) return
+    if (!enabled || !page || !canvasRef.current) return
     const canvas = canvasRef.current
     const viewport = page.getViewport({ scale })
     const context = canvas.getContext('2d')
@@ -39,7 +41,7 @@ export function usePageRender({ page, scale, canvasRef }: Props) {
     } catch {
       // Ignore cancelled renders (e.g. page changed)
     }
-  }, [page, scale, canvasRef])
+  }, [page, scale, canvasRef, enabled])
 
   useEffect(() => {
     render()
