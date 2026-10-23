@@ -38,12 +38,12 @@ export function pencilCursor(color: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 17 3, crosshair`
 }
 
-/** Text cursor: clean serif "T" glyph, matches TextIcon. */
+/** Text cursor: serif "T" glyph matching TextIcon. Horizontal bar is clearly wide. */
 export function textCursor(): string {
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">` +
-    `<path d="M11 4h4" stroke="#0a0c11" stroke-width="2" stroke-linecap="round"/>` +
-    `<path d="M13 4v20" stroke="#0a0c11" stroke-width="2" stroke-linecap="round"/>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32">` +
+    `<path d="M4 4h20" stroke="#0a0c11" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M14 4v24" stroke="#0a0c11" stroke-width="3" stroke-linecap="round"/>` +
     `</svg>`
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 12 12, text`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 14 4, text`
 }
