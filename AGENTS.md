@@ -35,6 +35,16 @@ main   ← always green, always deployable. Receives merges only.
    ```
 5. Never commit directly to `main`. Never force-push `main`.
 
+### Remote
+
+`origin` is <https://github.com/erenYe0ger/Fluxora>, and **only `main` is published**. `dev` and any
+scratch branch stay on this machine. `remote.origin.push` is pinned to
+`refs/heads/main:refs/heads/main`, so a bare `git push` cannot publish `dev` by accident; only an
+explicit refspec (`git push origin dev:dev`) would, and there is no reason to want that.
+
+Promoting work therefore looks like: merge `dev` into `main` locally, check `main`, then `git push`
+(which sends `main` and nothing else).
+
 **Definition of done for a feature:** code + tests + docs touched (if behaviour changed) + `npm run verify` passes + manual smoke test of the touched screen.
 
 ## Folder structure
