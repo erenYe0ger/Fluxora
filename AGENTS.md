@@ -35,6 +35,16 @@ main   ← always green, always deployable. Receives merges only.
    ```
 5. Never commit directly to `main`. Never force-push `main`.
 
+### Remote
+
+`origin` is <https://github.com/erenYe0ger/Fluxora>, and **only `main` is published**. `dev` and any
+scratch branch stay on this machine. `remote.origin.push` is pinned to
+`refs/heads/main:refs/heads/main`, so a bare `git push` cannot publish `dev` by accident; only an
+explicit refspec (`git push origin dev:dev`) would, and there is no reason to want that.
+
+Promoting work therefore looks like: merge `dev` into `main` locally, check `main`, then `git push`
+(which sends `main` and nothing else).
+
 **Definition of done for a feature:** code + tests + docs touched (if behaviour changed) + `npm run verify` passes + manual smoke test of the touched screen.
 
 ## Folder structure
@@ -134,6 +144,23 @@ that stops being "one feature's concern" moves down to `shared/` instead.
 - Anything with branching logic (search matching, annotation geometry, storage CRUD) gets a unit test.
 - Anything that crosses layers (import → library → viewer) gets an integration test.
 - Tests must not need network or a real PDF file: use `pdf-lib`-free fixtures, plain byte stubs, or fake-indexeddb.
+
+## Known issues
+
+**Windows + Vite 8 `spawn EPERM`**
+Vite 8 uses rolldown's `externalize-deps` plugin, which can fail on Windows with `EPERM: spawn
+EPERM` when resolving config dependencies. If `npm run verify` fails on Windows with this error,
+the fix is to nuke and reinstall:
+
+```bash
+rmdir /s /q node_modules
+del package-lock.json
+npm install
+npm run verify
+```
+
+This project is pinned to **Vite 7 + `@vitejs/plugin-react@5`** to avoid this issue. Keep those
+versions together: any upgrade to Vite 8 requires verifying the Windows build independently.
 
 ## When in doubt
 
