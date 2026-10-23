@@ -15,17 +15,19 @@ export function zoomOut(scale: number): number {
 }
 
 /**
- * Scale that makes a page fill the available width (minus gutters).
- * Returns the current scale when dimensions are not known yet.
+ * Scale that fits a whole page inside the viewport, keeping `inset` px free on every
+ * side. This is a "contain" fit: it grows a small page up and shrinks a large one,
+ * never exceeding the available box in either axis.
  */
-export function fitWidthScale(
-  containerWidth: number,
-  pageWidth: number,
-  gutter = 48,
+export function fitPageScale(
+  available: { width: number; height: number },
+  page: { width: number; height: number },
+  inset = 0,
   fallback = 1
 ): number {
-  if (containerWidth <= 0 || pageWidth <= 0) return fallback
-  const available = containerWidth - gutter
-  if (available <= 0) return fallback
-  return clampScale(available / pageWidth)
+  const boxWidth = available.width - inset * 2
+  const boxHeight = available.height - inset * 2
+  if (boxWidth <= 0 || boxHeight <= 0 || page.width <= 0 || page.height <= 0) return fallback
+
+  return clampScale(Math.min(boxWidth / page.width, boxHeight / page.height))
 }

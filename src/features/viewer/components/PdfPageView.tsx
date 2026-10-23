@@ -5,7 +5,7 @@ import { usePageRender } from '../hooks/usePageRender'
 import { useTextLayer } from '../hooks/useTextLayer'
 import { useSearchRects } from '../hooks/useSearchRects'
 import { useInView } from '@shared/hooks/useInView'
-import type { Annotation, HighlightColor, Rect } from '@features/annotations'
+import type { Annotation, Rect } from '@features/annotations'
 import { clampRect, normalizeRect, toCssBox } from '@features/annotations'
 import { AnnotationLayer } from '@features/annotations'
 
@@ -13,7 +13,6 @@ type Props = {
   page: PDFPageProxy
   scale: number
   tool: 'select' | 'highlight' | 'note'
-  color: HighlightColor
   annotations: Annotation[]
   searchQuery: string
   activeMatch: number | null
@@ -30,7 +29,6 @@ export function PdfPageView({
   page,
   scale,
   tool,
-  color,
   annotations,
   searchQuery,
   activeMatch,
@@ -60,8 +58,8 @@ export function PdfPageView({
 
   const pageAnnotations = annotations.filter((annotation) => annotation.page === page.pageNumber)
 
-  // Selection -> highlight. Uses client rects so multi-line selections produce
-  // one box per line, then normalises them for zoom-independent storage.
+  // Selection -> highlight. getClientRects gives one box per visual line, which we
+  // normalise against the page box so the highlight is zoom-independent.
   const handleMouseUp = () => {
     if (tool !== 'highlight') return
     const selection = window.getSelection()
@@ -81,9 +79,11 @@ export function PdfPageView({
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     if (tool !== 'note' || !wrapperRef.current) return
     const pageBox = wrapperRef.current.getBoundingClientRect()
-    const x = (event.clientX - pageBox.left) / pageBox.width
-    const y = (event.clientY - pageBox.top) / pageBox.height
-    setDraftNote({ x, y, text: '' })
+    setDraftNote({
+      x: (event.clientX - pageBox.left) / pageBox.width,
+      y: (event.clientY - pageBox.top) / pageBox.height,
+      text: ''
+    })
   }
 
   return (
@@ -91,14 +91,21 @@ export function PdfPageView({
       id={`page-${page.pageNumber}`}
       ref={wrapperRef}
       data-page={page.pageNumber}
-      className="relative mx-auto w-fit bg-white shadow-lg"
-      style={{ width: viewport.width, height: viewport.height }}
+      data-tool={tool}
+      className={`relative mx-auto w-fit shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-black/10 ${
+        tool === 'note' ? 'cursor-copy' : ''
+      }`}
+      style={{
+        width: viewport.width,
+        height: viewport.height,
+        boxShadow: 'var(--page-shadow)'
+      }}
       onMouseUp={handleMouseUp}
       onClick={handleClick}
     >
       {inView ? (
         <>
-          <canvas ref={canvasRef} className="block" />
+          <canvas ref={canvasRef} className="animate-fade-in block" />
           <div ref={textLayerRef} className="textLayer" />
           <AnnotationLayer annotations={pageAnnotations} onDelete={onDeleteAnnotation} />
 
@@ -114,14 +121,14 @@ export function PdfPageView({
           )}
         </>
       ) : (
-        <div className="flex h-full items-center justify-center text-xs text-slate-400">
-          Page {page.pageNumber}
+        <div className="flex h-full items-center justify-center">
+          <span className="animate-pulse text-xs text-slate-400">Page {page.pageNumber}</span>
         </div>
       )}
 
       {draftNote && (
         <div
-          className="absolute z-30 w-56 rounded border border-slate-300 bg-white p-2 text-xs shadow-xl dark:border-slate-600 dark:bg-slate-800"
+          className="animate-pop absolute z-30 w-60 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
           style={{ left: `${draftNote.x * 100}%`, top: `${draftNote.y * 100}%` }}
           onClick={(event) => event.stopPropagation()}
         >
@@ -129,17 +136,24 @@ export function PdfPageView({
             autoFocus
             rows={3}
             placeholder="Write a note…"
-            className="w-full resize-none rounded border border-slate-300 bg-transparent p-1 outline-none dark:border-slate-600"
+            className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
             value={draftNote.text}
             onChange={(event) => setDraftNote({ ...draftNote, text: event.target.value })}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setDraftNote(null)
+            }}
           />
-          <div className="mt-1 flex justify-end gap-2">
-            <button type="button" className="text-slate-500" onClick={() => setDraftNote(null)}>
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-md px-2 py-1 text-muted transition hover:text-ink"
+              onClick={() => setDraftNote(null)}
+            >
               Cancel
             </button>
             <button
               type="button"
-              className="font-medium text-blue-600"
+              className="rounded-md bg-accent px-2.5 py-1 font-medium text-accent-ink transition hover:brightness-110 disabled:opacity-45"
               disabled={!draftNote.text.trim()}
               onClick={() => {
                 onNote({ x: draftNote.x, y: draftNote.y, text: draftNote.text.trim() })
@@ -151,13 +165,6 @@ export function PdfPageView({
           </div>
         </div>
       )}
-
-      {/* colour stripe hint so the active tool is visible at the page level */}
-      <span
-        className="pointer-events-none absolute -left-2 top-0 h-full w-1 rounded"
-        style={{ backgroundColor: tool === 'select' ? 'transparent' : color }}
-        aria-hidden
-      />
     </div>
   )
 }

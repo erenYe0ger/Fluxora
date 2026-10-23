@@ -31,12 +31,3 @@ export type NoteAnnotation = {
 }
 
 export type Annotation = HighlightAnnotation | NoteAnnotation
-
-export const HIGHLIGHT_COLORS = {
-  yellow: '#fde047',
-  green: '#86efac',
-  blue: '#93c5fd',
-  pink: '#f9a8d4'
-} as const
-
-export type HighlightColor = keyof typeof HIGHLIGHT_COLORS

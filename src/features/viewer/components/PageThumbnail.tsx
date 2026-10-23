@@ -41,18 +41,30 @@ export function PageThumbnail({ page, width, active, onSelect }: Props) {
       onClick={() => onSelect(page.pageNumber)}
       aria-label={`Page ${page.pageNumber}`}
       aria-current={active ? 'page' : undefined}
-      className={`block w-full rounded border p-1 text-center transition ${
-        active
-          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-          : 'border-transparent hover:border-slate-300 dark:hover:border-slate-700'
+      className={`group flex w-full flex-col items-center gap-1 rounded-lg p-1 transition duration-150 ${
+        active ? 'bg-accent-soft' : 'hover:bg-surface-2'
       }`}
     >
-      <canvas
-        ref={canvasRef}
-        className="mx-auto block bg-white"
-        style={{ width: viewport.width, height: viewport.height }}
-      />
-      <span className="mt-1 block text-[10px] text-slate-500">{page.pageNumber}</span>
+      <span
+        className={`block overflow-hidden rounded-md bg-white ring-1 transition duration-150 ${
+          active
+            ? 'ring-2 ring-accent'
+            : 'ring-black/10 group-hover:ring-line-strong dark:ring-white/10'
+        }`}
+      >
+        <canvas
+          ref={canvasRef}
+          className="block"
+          style={{ width: viewport.width, height: viewport.height }}
+        />
+      </span>
+      <span
+        className={`text-[10px] font-medium tabular-nums ${
+          active ? 'text-accent' : 'text-muted'
+        }`}
+      >
+        {page.pageNumber}
+      </span>
     </button>
   )
 }

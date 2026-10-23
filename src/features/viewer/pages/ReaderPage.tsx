@@ -1,20 +1,20 @@
 import { useCallback, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { usePdfDocument } from '../hooks/usePdfDocument'
 import { usePdfPages } from '../hooks/usePdfPages'
 import { PdfPageView } from '../components/PdfPageView'
 import { ThumbnailRail } from '../components/ThumbnailRail'
 import { Toolbar } from '../components/Toolbar'
 import { useViewerStore } from '../store/viewerStore'
-import { useAnnotations } from '@features/annotations'
-import { AnnotationsPanel } from '@features/annotations'
-import { useDocumentSearch } from '@features/search'
-import { HIGHLIGHT_COLORS } from '@features/annotations'
 import { useDocumentRecord } from '../hooks/useDocumentRecord'
 import { useReaderLayout } from '../hooks/useReaderLayout'
 import { useReaderShortcuts } from '../hooks/useReaderShortcuts'
-import { EmptyState } from '@shared/ui/EmptyState'
+import { AnnotationsPanel, useAnnotations } from '@features/annotations'
+import { useDocumentSearch } from '@features/search'
+import { useSettingsStore } from '@features/settings'
 import { Button } from '@shared/ui/Button'
+import { EmptyState } from '@shared/ui/EmptyState'
+import { FileTextIcon } from '@shared/ui/icons'
 
 export function ReaderPage() {
   const { id } = useParams<{ id: string }>()
@@ -29,11 +29,12 @@ export function ReaderPage() {
   const sidebarTab = useViewerStore((state) => state.sidebarTab)
   const setSidebarTab = useViewerStore((state) => state.setSidebarTab)
   const tool = useViewerStore((state) => state.tool)
-  const color = useViewerStore((state) => state.color)
   const scale = useViewerStore((state) => state.scale)
   const currentPage = useViewerStore((state) => state.currentPage)
   const reset = useViewerStore((state) => state.reset)
   const toggleSidebar = useViewerStore((state) => state.toggleSidebar)
+
+  const highlightColor = useSettingsStore((state) => state.highlightColor)
 
   const { containerRef } = useReaderLayout(pages)
 
@@ -67,21 +68,24 @@ export function ReaderPage() {
   const failure = metaError ?? pdfError
   if (failure) {
     return (
-      <div className="p-6">
-        <EmptyState message={failure} />
-        <div className="mt-4 text-center">
-          <Button onClick={() => navigate('/')}>Back to library</Button>
-        </div>
+      <div className="flex h-full items-center justify-center p-6">
+        <EmptyState
+          title="This document could not be opened"
+          message={failure}
+          icon={<FileTextIcon className="h-5 w-5" />}
+        >
+          <Button variant="secondary" onClick={() => navigate('/')}>
+            Back to library
+          </Button>
+        </EmptyState>
       </div>
     )
   }
 
-  if (!meta) return <EmptyState message="Loading document…" />
-
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-bg">
       <Toolbar
-        fileName={meta.name}
+        fileName={meta?.name ?? 'Loading…'}
         numPages={numPages}
         onBack={() => navigate('/')}
         onJumpToPage={jumpToPage}
@@ -91,27 +95,30 @@ export function ReaderPage() {
 
       <div className="relative flex min-h-0 flex-1">
         {sidebarOpen && (
-          <aside className="absolute inset-y-0 left-0 z-30 flex w-40 shrink-0 flex-col border-r border-slate-200 bg-slate-50 shadow-xl md:static md:shadow-none dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex border-b border-slate-200 text-xs dark:border-slate-800">
-              <button
-                type="button"
-                className={`flex-1 px-2 py-2 ${
-                  sidebarTab === 'thumbnails' ? 'bg-white font-medium dark:bg-slate-800' : ''
-                }`}
-                onClick={() => setSidebarTab('thumbnails')}
-              >
-                Pages
-              </button>
-              <button
-                type="button"
-                className={`flex-1 px-2 py-2 ${
-                  sidebarTab === 'annotations' ? 'bg-white font-medium dark:bg-slate-800' : ''
-                }`}
-                onClick={() => setSidebarTab('annotations')}
-              >
-                Notes
-              </button>
+          <aside className="animate-slide-in absolute inset-y-0 left-0 z-30 flex w-40 shrink-0 flex-col border-r border-line bg-surface md:static">
+            <div className="flex gap-1 border-b border-line p-1.5">
+              {(
+                [
+                  ['thumbnails', 'Pages'],
+                  ['annotations', `Notes ${annotations.annotations.length || ''}`.trim()]
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setSidebarTab(tab)}
+                  aria-pressed={sidebarTab === tab}
+                  className={`flex-1 rounded-lg px-2 py-1.5 text-[11px] font-medium transition duration-150 ${
+                    sidebarTab === tab
+                      ? 'bg-surface-2 text-ink shadow-soft'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+
             <div className="min-h-0 flex-1 overflow-auto">
               {sidebarTab === 'thumbnails' ? (
                 <ThumbnailRail
@@ -134,42 +141,42 @@ export function ReaderPage() {
           </aside>
         )}
 
-        <main
-          ref={containerRef}
-          className="min-w-0 flex-1 overflow-auto bg-slate-200 px-4 py-4 dark:bg-slate-950"
-        >
-          {pages.length === 0 && <EmptyState message="Preparing pages…" />}
-          <div className="mx-auto flex w-fit flex-col gap-4">
+        <main ref={containerRef} className="min-w-0 flex-1 overflow-auto bg-bg p-4 md:p-8">
+          {pages.length === 0 && (
+            <EmptyState title="Preparing pages" message="Laying out the document…" />
+          )}
+
+          <div className="mx-auto flex w-fit flex-col items-center gap-5">
             {pages.map((page) => {
               const activeMatch =
                 search.active && search.active.page === page.pageNumber
                   ? search.active.localIndex
                   : null
+
               return (
                 <PdfPageView
                   key={page.pageNumber}
                   page={page}
                   scale={scale}
                   tool={tool}
-                  color={color}
                   annotations={annotations.annotations}
                   searchQuery={search.query}
                   activeMatch={activeMatch}
                   onHighlight={(input) =>
                     annotations.addHighlight({
-                      docId: meta.id,
+                      docId: meta?.id ?? '',
                       page: page.pageNumber,
                       kind: 'highlight',
-                      color: HIGHLIGHT_COLORS[color],
+                      color: highlightColor,
                       ...input
                     })
                   }
                   onNote={(input) =>
                     annotations.addNote({
-                      docId: meta.id,
+                      docId: meta?.id ?? '',
                       page: page.pageNumber,
                       kind: 'note',
-                      color: HIGHLIGHT_COLORS[color],
+                      color: highlightColor,
                       ...input
                     })
                   }

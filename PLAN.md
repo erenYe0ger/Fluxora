@@ -64,6 +64,29 @@ Docker
 | M2 | Reader: render, scroll, zoom, navigation | ✅ done |
 | M3 | Search + annotations | ✅ done |
 | M4 | Test suite + verify pipeline + prod image | ✅ done |
+| M5 | Themed UI, settings, custom highlight colours, fit-page fix | ✅ done |
+
+### v0.2 implementation notes
+
+- **Theme is a token swap, not `dark:` overrides.** Every colour is a CSS custom property
+  (`--surface`, `--ink`, `--accent`, …) mapped into Tailwind through `@theme inline`, and
+  `<html data-theme>` selects the palette. Dark is the default; `index.html` applies the saved
+  theme before first paint so a light-mode user never sees a dark flash.
+- **Settings live in `features/settings`** (Zustand + `persist`) and hold only preferences
+  (theme, default highlight colour, recent custom colours). Documents stay in IndexedDB.
+- **Colours are free-form.** Annotations store a hex string, so presets are just defaults and a
+  custom colour is not a special case anywhere in the data model.
+- **"Fit" means fit-page, not fit-width.** `fitPageScale` takes the smaller of the two axis
+  ratios, so the page always fits the viewport with the scroll padding free on all four sides and
+  nothing is cropped.
+- **pdf.js text spans need size from CSS.** pdf.js 6 positions spans by percentage and publishes
+  `--font-height`; the span `font-size` must be `var(--total-scale-factor) * var(--font-height)`.
+  Without that rule the invisible spans keep the browser default size and every selection and
+  highlight box lands on the wrong glyphs. `src/styles/index.css` owns this contract — do not
+  "simplify" it away.
+- **Highlights never capture pointer events.** They are a visual layer only; blocking them keeps
+  text selection working over already-highlighted text. Deletion happens from the Notes panel or
+  the new annotation's own controls.
 
 ### v0.1 implementation notes
 
@@ -84,6 +107,9 @@ Docker
 
 - Persist annotations into the PDF via `pdf-lib` and download the annotated file.
 - Text selection handles, freehand ink, rectangle/shape annotations.
+- Per-document highlight palettes (today the default colour is global) and annotation tags/colours
+  in the sidebar.
+- A true dark reading surface that inverts the PDF page itself (today the page stays white).
 - Password-protected PDFs, PDF/A edge cases, very large (500MB+) documents.
 - Virtualised page rendering for 1000+ page files.
 - PWA/offline install, file-system-access API for "open in place".
