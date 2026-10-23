@@ -12,8 +12,10 @@ and drop notes — everything stays in your browser (IndexedDB). There is no bac
 - **Zoom** — the page fills the reading width on open (with a gutter either side), then
   zoom in/out, reset to 100%, editable page box, keyboard shortcuts.
 - **Search** — case-insensitive, per-document, match counter, next/previous, highlight overlay.
-- **Highlights** — select text, pick any colour, translucent so the words stay legible.
-- **Notes** — click the page with the note tool, choose a colour per note tool, delete, JSON export.
+- **Highlights** — select text and pick yellow, green, blue or your own colour; translucent so the
+  words stay legible, and the cursor becomes a marker in that colour.
+- **Notes** — click the page with the note tool, pick from its own palette or a custom colour,
+  delete, JSON export.
 - **Undo** — `Ctrl/⌘ + Z` (or the toolbar button) reverses the last highlight, note or deletion.
 - **Themes** — dark (default) and light, switchable from Settings; the choice is remembered.
 - **Responsive** — sidebar collapses to an overlay on narrow screens.

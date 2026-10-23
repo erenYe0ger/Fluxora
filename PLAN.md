@@ -66,6 +66,7 @@ Docker
 | M4 | Test suite + verify pipeline + prod image | ✅ done |
 | M5 | Themed UI, settings, custom highlight colours, fit-page fix | ✅ done |
 | M6 | Tool-local colours, translucent highlights, undo, fit-width default | ✅ done |
+| M7 | Compact colour slots, marker cursor, crisp thumbnails, layout polish | ✅ done |
 
 ### v0.2 – v0.3 implementation notes
 
@@ -96,6 +97,61 @@ Docker
 - **Highlights never capture pointer events.** They are a visual layer only; blocking them keeps
   text selection working over already-highlighted text. Deletion happens from the Notes panel or
   the new annotation's own controls.
+
+### v0.4 implementation notes
+
+- **One custom slot, not a colour library.** Each tool offers three presets (yellow/green/blue for
+  highlights, amber/rose/teal for notes) plus a fourth slot holding whatever the user last picked.
+  The slot is what the `+` marks; a picked colour is *staged* and only applied when the user hits
+  OK in the small confirm popover, so cancelling a pick leaves the current colour untouched.
+- **The pointer previews the tool.** In highlight mode the cursor is a highlighter glyph tinted
+  with the active colour; in note mode it is a crosshair. Both are plain inline SVG data URIs, so
+  they follow a custom colour with no image assets.
+- **Thumbnails render at device pixels.** The rail canvas is sized `width × devicePixelRatio`
+  (capped at 3) and scaled down by CSS. Drawing at 1x and letting the browser upscale is what made
+  the rail look hazy next to the page canvas.
+- **"Searching" is derived, not stored.** The hook keeps the query that the current hits belong to;
+  `searching` is simply `query !== settledQuery`. Setting a boolean in an effect would let one
+  painted frame show stale results (e.g. `0/0` with live arrows) before the flag landed.
+- **The find bar only shows what is true right now.** While searching it shows the label alone; the
+  counter and the prev/next/clear controls appear once results settle, with their space reserved so
+  the toolbar never reflows.
+- **The sidebar indexes, it does not quote.** Note/highlight rows keep roughly eight words and an
+  ellipsis; the full text is in the tooltip and in the note popover. The cut happens in JS on word
+  boundaries (`previewText`), not with CSS `text-overflow`, which would slice a word in half. The
+  ellipsis appears only when something was actually left out.
+- **The find field has a fixed footprint.** A constant-width wrapper (with reserved space for the
+  counter and clear button) means typing scrolls inside the input instead of widening the toolbar
+  until it wraps. The width is chosen so the full "Find in document" placeholder fits *with* those
+  reserving cells in place — a narrower box clips the placeholder before the user has typed anything.
+- **The marker cursor is the toolbar's highlighter.** `markerCursor` reuses the exact
+  `HighlighterIcon` path — filled with the active colour and outlined in black so it reads on any
+  page — and select mode uses the toolbar's arrow (`selectCursor`). `src/styles/index.css` makes the
+  text layer inherit that cursor, otherwise pdf.js's I-beam replaces it the moment the pointer
+  crosses a word. One glyph in two places means the pointer always matches the button just pressed.
+- **The custom slot wears one face.** It is always the rainbow disc; the chosen colour shows as the
+  selection ring, not by repainting the slot. Hover changes only the ring — no `scale`, which made
+  the conic gradient look hazy and grew the `+` off-centre.
+- **The custom picker is ours, not the platform's.** Clicking the slot opens a small panel with a
+  saturation/value square, a hue slider and the hex preview, and its OK/Cancel live *inside* that
+  panel — the native colour dialog had no room for a confirm step, so it was staged in a second
+  popover. Hue is kept as state (`lib/color.ts`) so dragging to black does not lose it.
+- **One clear button in the find field.** The input is `type="search"` for its semantics, but the
+  engine's own `::-webkit-search-cancel-button` is switched off in CSS; its ✕ sat immediately after
+  the text and duplicated the real one on the right.
+- **Double click removes a highlight.** In highlight mode the second click in one spot deletes the
+  highlight under the pointer instead of adding a duplicate. Detected by click timing inside the
+  `mouseup` handler, not by `dblclick`: by the time `dblclick` fires we would already have created
+  the duplicate we then had to clean up.
+- **Notes move by dragging, but only in select mode.** The pin is `cursor: grab` and writes its
+  final normalised position on `pointerup`; the note tool stays a placement tool. Drag geometry is
+  measured against the live page rect on every move, because the page can scroll under the pointer.
+  Moves are not undoable — the history stays add/delete only.
+- **Overlays open towards the inside of the page.** The note composer slides back from the
+  right/bottom edge so it is never clipped, and an existing note's popover flips left/up past the
+  middle of the page. Both are clamped in px against the page viewport, not the window.
+- **Settings only holds appearance.** The dialog is the theme switch and nothing else — no reset
+  button, no instructions. Tool colours persist in the same store but are edited in the reader.
 
 ### v0.1 implementation notes
 

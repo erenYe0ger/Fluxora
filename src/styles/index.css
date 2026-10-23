@@ -243,3 +243,64 @@ body {
   background: color-mix(in oklab, #f97316 62%, transparent);
   box-shadow: 0 0 0 2px color-mix(in oklab, #f97316 70%, transparent);
 }
+
+/*
+ * The text layer sets an I-beam on every span. That is right for reading and selecting, but it
+ * would replace the tool cursor the moment the pointer crosses text, so in tool modes the layer
+ * inherits the page's cursor instead.
+ */
+[data-tool='select'] .textLayer,
+[data-tool='select'] .textLayer *,
+[data-tool='highlight'] .textLayer,
+[data-tool='highlight'] .textLayer *,
+[data-tool='note'] .textLayer,
+[data-tool='note'] .textLayer * {
+  cursor: inherit;
+}
+
+/* The find field brings its own clear button; the native one would show a second "x". */
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Hue track for the custom colour picker. */
+.hue-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #ff0000,
+    #ffff00,
+    #00ff00,
+    #00ffff,
+    #0000ff,
+    #ff00ff,
+    #ff0000
+  );
+}
+
+.hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  border: 1px solid rgb(0 0 0 / 0.35);
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+
+.hue-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  border: 1px solid rgb(0 0 0 / 0.35);
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}

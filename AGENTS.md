@@ -82,6 +82,9 @@ that stops being "one feature's concern" moves down to `shared/` instead.
    "for tidiness" — verify text selection still lines up if you touch the text layer.
 5. **Highlights stay translucent.** `.annotation-highlight` uses opacity + multiply so the marked
    text remains readable. A solid `background-color` with no alpha is a bug, not a style choice.
+6. **Canvases render at device pixels.** Anything drawn to a canvas (page, thumbnail) sizes its
+   backing store to `cssSize * devicePixelRatio` and lets CSS scale it down. Skipping this is what
+   makes previews look hazy on high-density displays.
 
 ## Naming conventions
 
@@ -114,6 +117,17 @@ that stops being "one feature's concern" moves down to `shared/` instead.
   Settings keeps the theme; the chosen colours are still stored there so they survive a reload.
 - **Undo history is session state** (`useAnnotations`). It is intentionally not persisted: an undo
   must never resurrect or remove something from a previous visit to the document.
+- **Derive transient state, do not store it.** If a UI state can be computed from existing state
+  (e.g. `searching = query !== settledQuery`), compute it. A boolean set inside an effect paints one
+  stale frame before it lands, which is how "no results" flashes before "searching".
+- **Keep effect dependencies honest.** If a hook takes a callback it calls later, hold it in a ref
+  rather than putting it in the effect's dependency list — an inline arrow from a caller would then
+  re-run (and, in the search hook, loop) on every render.
+- **Tool cursors mirror the toolbar icon.** `markerCursor`/`selectCursor` must draw the same paths
+  as `HighlighterIcon`/`CursorIcon`, and the text layer inherits the page cursor in tool modes so the
+  I-beam never replaces them. If an icon changes, its cursor changes with it.
+- **Anything the user drops on a page stays inside that page.** Note composers and note popovers are
+  clamped/flipped against the page rect, and drag positions are measured against live bounds.
 
 ## Testing expectations
 

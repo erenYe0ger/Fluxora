@@ -1,4 +1,5 @@
 import type { Annotation } from '../types'
+import { previewText } from '../lib/preview'
 import { HighlighterIcon, NoteIcon, CloseIcon } from '@shared/ui/icons'
 
 type Props = {
@@ -47,12 +48,14 @@ export function AnnotationsPanel({ annotations, onJump, onDelete }: Props) {
                 type="button"
                 className="block w-full text-left"
                 onClick={() => onJump(annotation.page)}
-                title="Jump to page"
+                title={annotation.text}
               >
                 <span className="text-[11px] font-medium text-muted">
                   Page {annotation.page} · {annotation.kind === 'note' ? 'Note' : 'Highlight'}
                 </span>
-                <p className="mt-0.5 line-clamp-3 text-xs text-ink">{annotation.text}</p>
+                <p className="mt-0.5 text-xs leading-snug break-words text-ink">
+                  {previewText(annotation.text)}
+                </p>
               </button>
             </div>
 

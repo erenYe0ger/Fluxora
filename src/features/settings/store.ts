@@ -8,47 +8,39 @@ export type HighlightPreset = {
   value: string
 }
 
-/** Named starting points; the picker lets people go beyond them. */
+/**
+ * Three quick colours plus one custom slot per tool. Keeping the palette short is
+ * deliberate: a row of ten swatches is slower to use than three good defaults.
+ */
 export const HIGHLIGHT_PRESETS: HighlightPreset[] = [
-  { name: 'Sunbeam', value: '#fde047' },
-  { name: 'Mint', value: '#8ce7a8' },
-  { name: 'Sky', value: '#93c5fd' },
-  { name: 'Blossom', value: '#f9a8d4' },
-  { name: 'Tangerine', value: '#fdba74' },
-  { name: 'Lilac', value: '#c4b5fd' }
+  { name: 'Yellow', value: '#fde047' },
+  { name: 'Green', value: '#8ce7a8' },
+  { name: 'Blue', value: '#93c5fd' }
 ]
 
-/** Notes are markers, not ink, so they start from a warmer, darker palette. */
+/** Notes are markers, not ink, so they use a slightly deeper palette. */
 export const NOTE_PRESETS: HighlightPreset[] = [
   { name: 'Amber', value: '#f59e0b' },
   { name: 'Rose', value: '#fb7185' },
-  { name: 'Teal', value: '#2dd4bf' },
-  { name: 'Violet', value: '#a78bfa' },
-  { name: 'Emerald', value: '#34d399' },
-  { name: 'Slate', value: '#94a3b8' }
+  { name: 'Teal', value: '#2dd4bf' }
 ]
 
 export const DEFAULT_HIGHLIGHT_COLOR = HIGHLIGHT_PRESETS[0].value
 export const DEFAULT_NOTE_COLOR = NOTE_PRESETS[0].value
 
-const MAX_RECENT_COLORS = 5
-
-export function isPresetColor(value: string): boolean {
-  return [...HIGHLIGHT_PRESETS, ...NOTE_PRESETS].some(
-    (preset) => preset.value.toLowerCase() === value.toLowerCase()
-  )
-}
-
 type SettingsState = {
   theme: Theme
   highlightColor: string
   noteColor: string
-  /** Custom colours the user picked, most recent first. */
-  recentColors: string[]
+  /** Remembered custom colours, so the fourth swatch survives a reload. */
+  customHighlightColor: string | null
+  customNoteColor: string | null
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
   setHighlightColor: (value: string) => void
   setNoteColor: (value: string) => void
+  setCustomHighlightColor: (value: string) => void
+  setCustomNoteColor: (value: string) => void
   reset: () => void
 }
 
@@ -56,45 +48,38 @@ const defaults = {
   theme: 'dark' as Theme,
   highlightColor: DEFAULT_HIGHLIGHT_COLOR,
   noteColor: DEFAULT_NOTE_COLOR,
-  recentColors: [] as string[]
+  customHighlightColor: null as string | null,
+  customNoteColor: null as string | null
 }
 
 /**
- * User preferences, persisted to localStorage. Kept deliberately small: anything
- * document-specific belongs in IndexedDB, not here. The reader's colour pickers write
- * here so a choice sticks across sessions, but they are surfaced in the reader, not
- * in the settings dialog.
+ * User preferences, persisted to localStorage. Documents and annotations belong in
+ * IndexedDB; this store only remembers how the app should look and which colours the
+ * annotation tools are currently using.
  */
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => {
-      const remember = (state: SettingsState, value: string) =>
-        isPresetColor(value)
-          ? state.recentColors
-          : [value, ...state.recentColors.filter((color) => color !== value)].slice(
-              0,
-              MAX_RECENT_COLORS
-            )
-
-      return {
-        ...defaults,
-        setTheme: (theme) => set({ theme }),
-        toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
-        setHighlightColor: (value) =>
-          set((state) => ({ highlightColor: value, recentColors: remember(state, value) })),
-        setNoteColor: (value) =>
-          set((state) => ({ noteColor: value, recentColors: remember(state, value) })),
-        reset: () => set({ ...defaults })
-      }
-    },
+    (set) => ({
+      ...defaults,
+      setTheme: (theme) => set({ theme }),
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+      setHighlightColor: (highlightColor) => set({ highlightColor }),
+      setNoteColor: (noteColor) => set({ noteColor }),
+      // Choosing a custom colour both fills the fourth slot and selects it.
+      setCustomHighlightColor: (value) =>
+        set({ customHighlightColor: value, highlightColor: value }),
+      setCustomNoteColor: (value) => set({ customNoteColor: value, noteColor: value }),
+      reset: () => set({ ...defaults })
+    }),
     {
       name: 'fluxora:settings',
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         theme: state.theme,
         highlightColor: state.highlightColor,
         noteColor: state.noteColor,
-        recentColors: state.recentColors
+        customHighlightColor: state.customHighlightColor,
+        customNoteColor: state.customNoteColor
       })
     }
   )

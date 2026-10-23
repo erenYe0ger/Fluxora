@@ -5,7 +5,7 @@ import { useViewerStore } from '../store/viewerStore'
 import { fitWidthScale } from '../lib/zoom'
 
 /** Breathing room left and right of the page, on top of the scroll area's own padding. */
-const SIDE_INSET = 24
+const SIDE_INSET = 56
 
 /**
  * Owns the scroll container: keeps "current page" in sync with scroll position and
