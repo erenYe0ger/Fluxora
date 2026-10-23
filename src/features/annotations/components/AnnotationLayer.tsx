@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import type { Annotation, NoteAnnotation } from '../types'
 import { toCssBox } from '../lib/geometry'
@@ -24,6 +24,25 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null)
   const dragRef = useRef<{ id: string; x: number; y: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  // An open note closes on Escape or on a click anywhere outside it, like any popover.
+  useEffect(() => {
+    if (!openNote) return
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null
+      if (target?.closest('[data-note-root]')) return
+      setOpenNote(null)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenNote(null)
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [openNote])
 
   const startDrag = (event: ReactPointerEvent<HTMLButtonElement>, note: NoteAnnotation) => {
     if (tool !== 'select') return
@@ -88,6 +107,7 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
         return (
           <div
             key={annotation.id}
+            data-note-root={annotation.id}
             className="animate-pop pointer-events-auto absolute"
             style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%` }}
           >
