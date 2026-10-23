@@ -189,6 +189,7 @@ export function ReaderPage() {
                     })
                   }
                   onDeleteAnnotation={annotations.removeAnnotation}
+                  onMoveAnnotation={annotations.moveAnnotation}
                 />
               )
             })}

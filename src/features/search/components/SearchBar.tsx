@@ -43,7 +43,7 @@ export function SearchBar({ search }: Props) {
       : ''
 
   return (
-    <div className="group flex h-9 w-64 items-center gap-1 rounded-xl border border-line bg-surface-2 pr-1 pl-2.5 transition focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20">
+    <div className="group flex h-9 w-72 items-center gap-1 rounded-xl border border-line bg-surface-2 pr-1 pl-2.5 transition focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20">
       <SearchIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
       {/* Fixed footprint: long queries scroll inside the field instead of widening it. */}
       <input

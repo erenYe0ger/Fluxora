@@ -108,6 +108,9 @@ export function SettingsMenu({ compact = false }: Props) {
               </header>
 
               <div className="px-5 py-5">
+                <h3 className="mb-2 text-xs font-medium tracking-wide text-muted uppercase">
+                  Appearance
+                </h3>
                 <div className="flex gap-2">
                   <ThemeChoice theme="dark" label="Dark">
                     <MoonIcon />

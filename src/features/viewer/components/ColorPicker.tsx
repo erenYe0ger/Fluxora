@@ -79,29 +79,30 @@ export function ColorPicker({
       })}
 
       <div className="relative">
+        {/* Scaling the button scales the tinted disc and the "+" as one unit. */}
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           aria-label={`Custom ${label.toLowerCase()}`}
           aria-pressed={customActive}
           title={customColor ? `Custom colour ${customColor}` : 'Pick a custom colour'}
-          className={`flex h-6 w-6 items-center justify-center rounded-full border transition duration-150 hover:scale-110 ${
+          className={`relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border transition duration-150 hover:scale-110 ${
             customActive
-              ? 'ring-2 ring-accent ring-offset-2 ring-offset-surface border-black/10'
-              : 'border-line-strong border-dashed'
+              ? 'border-black/10 ring-2 ring-accent ring-offset-2 ring-offset-surface'
+              : 'border-dashed border-line-strong'
           }`}
-          style={
-            customColor
-              ? { backgroundColor: customColor }
-              : {
-                  background:
-                    'conic-gradient(#ff8a8a, #ffd166, #8ce7a8, #7cc7ff, #b79bff, #ff8ad8, #ff8a8a)'
-                }
-          }
         >
+          <span
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: customColor
+                ? customColor
+                : 'conic-gradient(#ff8a8a, #ffd166, #8ce7a8, #7cc7ff, #b79bff, #ff8ad8, #ff8a8a)'
+            }}
+          />
           {/* Always present: it is what marks this circle as the custom slot. */}
           <span
-            className="pointer-events-none"
+            className="relative"
             style={{ color: customColor ? contrastInk(customColor) : '#0a0c11' }}
           >
             <PlusIcon className="h-3 w-3" />

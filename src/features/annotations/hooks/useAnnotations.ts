@@ -80,6 +80,24 @@ export function useAnnotations(docId: string | undefined) {
     [annotations, record]
   )
 
+  /** Move a note pin. Dragging is not undoable, so it is deliberately not recorded. */
+  const moveAnnotation = useCallback(
+    async (id: string, x: number, y: number) => {
+      const target = annotations.find((annotation) => annotation.id === id)
+      if (!target || target.kind !== 'note') return
+      const moved: NoteAnnotation = {
+        ...target,
+        x: Math.min(1, Math.max(0, x)),
+        y: Math.min(1, Math.max(0, y))
+      }
+      await saveAnnotation(moved)
+      setAnnotations((prev) =>
+        prev.map((annotation) => (annotation.id === id ? moved : annotation))
+      )
+    },
+    [annotations]
+  )
+
   /** Undo the most recent add or delete by applying its inverse. */
   const undo = useCallback(async () => {
     const entry = historyRef.current[historyRef.current.length - 1]
@@ -102,6 +120,7 @@ export function useAnnotations(docId: string | undefined) {
     addHighlight,
     addNote,
     removeAnnotation,
+    moveAnnotation,
     undo,
     canUndo: historyDepth > 0,
     reload

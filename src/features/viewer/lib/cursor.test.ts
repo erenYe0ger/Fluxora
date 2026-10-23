@@ -8,9 +8,16 @@ describe('markerCursor', () => {
     expect(cursor.endsWith(', crosshair')).toBe(true)
   })
 
-  it('encodes the active colour inside the SVG', () => {
-    const cursor = markerCursor('#ff8a3d')
-    expect(decodeURIComponent(cursor)).toContain('fill="#ff8a3d"')
+  it('strokes the same glyph the toolbar uses', () => {
+    const svg = decodeURIComponent(markerCursor('#fde047'))
+    expect(svg).toContain('m14 4 6 6-8.2 8.2H6.2v-5.6z')
+    expect(svg).toContain('M4 21h9')
+  })
+
+  it('tints the glyph with the active colour and keeps a dark halo', () => {
+    const svg = decodeURIComponent(markerCursor('#ff8a3d'))
+    expect(svg).toContain('stroke="#ff8a3d"')
+    expect(svg).toContain('stroke="#111"')
   })
 
   it('re-encodes when the colour changes', () => {
@@ -20,7 +27,7 @@ describe('markerCursor', () => {
   it('leaves no raw characters that would break a CSS url()', () => {
     const inner = markerCursor('#93c5fd')
       .replace(/^url\("data:image\/svg\+xml,/, '')
-      .replace(/"\) 3 22, crosshair$/, '')
+      .replace(/"\) 5 20, crosshair$/, '')
     expect(inner).not.toContain(' ')
     expect(inner).not.toContain('"')
   })

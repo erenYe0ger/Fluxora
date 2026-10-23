@@ -122,7 +122,23 @@ Docker
   ellipsis appears only when something was actually left out.
 - **The find field has a fixed footprint.** A constant-width wrapper (with reserved space for the
   counter and clear button) means typing scrolls inside the input instead of widening the toolbar
-  until it wraps.
+  until it wraps. The width is chosen so the full "Find in document" placeholder fits *with* those
+  reserving cells in place — a narrower box clips the placeholder before the user has typed anything.
+- **The marker cursor is the toolbar's highlighter.** `markerCursor` reuses the exact
+  `HighlighterIcon` path, stroked in the active colour over a soft dark halo (a pale colour would
+  otherwise vanish on a white page). One glyph in two places means the pointer always matches the
+  button the user just pressed.
+- **Double click removes a highlight.** In highlight mode the second click in one spot deletes the
+  highlight under the pointer instead of adding a duplicate. Detected by click timing inside the
+  `mouseup` handler, not by `dblclick`: by the time `dblclick` fires we would already have created
+  the duplicate we then had to clean up.
+- **Notes move by dragging, but only in select mode.** The pin is `cursor: grab` and writes its
+  final normalised position on `pointerup`; the note tool stays a placement tool. Drag geometry is
+  measured against the live page rect on every move, because the page can scroll under the pointer.
+  Moves are not undoable — the history stays add/delete only.
+- **Overlays open towards the inside of the page.** The note composer slides back from the
+  right/bottom edge so it is never clipped, and an existing note's popover flips left/up past the
+  middle of the page. Both are clamped in px against the page viewport, not the window.
 - **Settings only holds appearance.** The dialog is the theme switch and nothing else — no reset
   button, no instructions. Tool colours persist in the same store but are edited in the reader.
 

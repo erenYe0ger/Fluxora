@@ -1,16 +1,18 @@
 /**
- * Cursor for the highlight tool: a highlighter glyph tinted with the colour that is
- * about to be applied, so the pointer shows the outcome before the drag.
- * The hotspot sits on the nib (bottom-left).
+ * Cursor for the highlight tool. It is the same glyph as the toolbar's HighlighterIcon,
+ * stroked in the colour that is about to be applied, with a soft dark halo so a light
+ * colour stays visible on a white page. The hotspot sits on the nib.
  */
 export function markerCursor(color: string): string {
+  const glyph = 'm14 4 6 6-8.2 8.2H6.2v-5.6z'
+  const underline = 'M4 21h9'
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">` +
-    `<path d="M3 23.5h7" stroke="#111" stroke-width="2" stroke-linecap="round" opacity=".75"/>` +
-    `<path d="M5.5 20.5 2.8 17.8 15.6 5l5.4 5.4z" fill="${color}" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/>` +
-    `<path d="m16.6 6 5.4 5.4 1.8-1.8a1.9 1.9 0 0 0 0-2.7l-2.7-2.7a1.9 1.9 0 0 0-2.7 0z" fill="#111" opacity=".55"/>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">` +
+    // Halo first, then the tinted glyph on top.
+    `<g stroke="#111" stroke-opacity=".45" stroke-width="4"><path d="${glyph}"/><path d="${underline}"/></g>` +
+    `<g stroke="${color}" stroke-width="1.9"><path d="${glyph}"/><path d="${underline}"/></g>` +
     `</svg>`
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 3 22, crosshair`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 5 20, crosshair`
 }
 
 /** Dark or light ink, whichever stays visible on the given swatch colour. */
