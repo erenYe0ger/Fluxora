@@ -99,7 +99,7 @@ export function ReaderPage() {
 
       <div className="relative flex min-h-0 flex-1">
         {sidebarOpen && (
-          <aside className="animate-slide-in absolute inset-y-0 left-0 z-30 flex w-40 shrink-0 flex-col border-r border-line bg-surface md:static">
+          <aside className="animate-slide-in absolute inset-y-0 left-0 z-30 flex w-60 shrink-0 flex-col border-r border-line bg-surface md:static">
             <div className="flex gap-1 border-b border-line p-1.5">
               {(
                 [
@@ -147,7 +147,7 @@ export function ReaderPage() {
 
         <main
           ref={containerRef}
-          className="min-w-0 flex-1 overflow-auto bg-bg px-4 pt-5 pb-15 md:px-6 md:pt-6 md:pb-20"
+          className="min-w-0 flex-1 overflow-auto bg-bg px-4 pt-4 pb-6 md:px-6 md:pt-5 md:pb-7"
         >
           {pages.length === 0 && (
             <EmptyState title="Preparing pages" message="Laying out the document…" />
@@ -166,6 +166,7 @@ export function ReaderPage() {
                   page={page}
                   scale={scale}
                   tool={tool}
+                  highlightColor={highlightColor}
                   annotations={annotations.annotations}
                   searchQuery={search.query}
                   activeMatch={activeMatch}

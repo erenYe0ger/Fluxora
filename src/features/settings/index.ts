@@ -5,7 +5,6 @@ export {
   NOTE_PRESETS,
   DEFAULT_HIGHLIGHT_COLOR,
   DEFAULT_NOTE_COLOR,
-  isPresetColor,
   useSettingsStore
 } from './store'
 export type { Theme, HighlightPreset } from './store'

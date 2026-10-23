@@ -66,6 +66,7 @@ Docker
 | M4 | Test suite + verify pipeline + prod image | ✅ done |
 | M5 | Themed UI, settings, custom highlight colours, fit-page fix | ✅ done |
 | M6 | Tool-local colours, translucent highlights, undo, fit-width default | ✅ done |
+| M7 | Compact colour slots, marker cursor, crisp thumbnails, layout polish | ✅ done |
 
 ### v0.2 – v0.3 implementation notes
 
@@ -96,6 +97,26 @@ Docker
 - **Highlights never capture pointer events.** They are a visual layer only; blocking them keeps
   text selection working over already-highlighted text. Deletion happens from the Notes panel or
   the new annotation's own controls.
+
+### v0.4 implementation notes
+
+- **One custom slot, not a colour library.** Each tool offers three presets (yellow/green/blue for
+  highlights, amber/rose/teal for notes) plus a fourth slot holding whatever the user last picked.
+  The slot commits on the native picker's `change` event, so a colour is applied when the user
+  confirms it, not while they drag around the wheel.
+- **The pointer previews the tool.** In highlight mode the cursor is a highlighter glyph tinted
+  with the active colour; in note mode it is a crosshair. Both are plain inline SVG data URIs, so
+  they follow a custom colour with no image assets.
+- **Thumbnails render at device pixels.** The rail canvas is sized `width × devicePixelRatio`
+  (capped at 3) and scaled down by CSS. Drawing at 1x and letting the browser upscale is what made
+  the rail look hazy next to the page canvas.
+- **The sidebar indexes, it does not quote.** Note/highlight rows keep roughly eight words and an
+  ellipsis; the full text is in the tooltip and in the note popover.
+- **The find field has a fixed footprint.** A constant-width wrapper (with reserved space for the
+  counter and clear button) means typing scrolls inside the input instead of widening the toolbar
+  until it wraps.
+- **Settings only holds appearance.** The dialog is the theme switch and nothing else — no reset
+  button, no instructions. Tool colours persist in the same store but are edited in the reader.
 
 ### v0.1 implementation notes
 

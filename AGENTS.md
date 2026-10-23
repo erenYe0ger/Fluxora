@@ -82,6 +82,9 @@ that stops being "one feature's concern" moves down to `shared/` instead.
    "for tidiness" — verify text selection still lines up if you touch the text layer.
 5. **Highlights stay translucent.** `.annotation-highlight` uses opacity + multiply so the marked
    text remains readable. A solid `background-color` with no alpha is a bug, not a style choice.
+6. **Canvases render at device pixels.** Anything drawn to a canvas (page, thumbnail) sizes its
+   backing store to `cssSize * devicePixelRatio` and lets CSS scale it down. Skipping this is what
+   makes previews look hazy on high-density displays.
 
 ## Naming conventions
 

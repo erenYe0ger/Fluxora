@@ -16,9 +16,22 @@ type Props = {
   annotations: Annotation[]
   searchQuery: string
   activeMatch: number | null
+  /** Drives the marker cursor so the pointer shows the colour about to be applied. */
+  highlightColor: string
   onHighlight: (input: { rects: Rect[]; text: string }) => void
   onNote: (input: { x: number; y: number; text: string }) => void
   onDeleteAnnotation: (id: string) => void
+}
+
+/** A highlighter-shaped pointer tinted with the active colour (hotspot at the nib). */
+function markerCursor(color: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">` +
+    `<path d="M3 23.5h7" stroke="#111" stroke-width="2" stroke-linecap="round" opacity=".75"/>` +
+    `<path d="M5.5 20.5 2.8 17.8 15.6 5l5.4 5.4z" fill="${color}" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/>` +
+    `<path d="m16.6 6 5.4 5.4 1.8-1.8a1.9 1.9 0 0 0 0-2.7l-2.7-2.7a1.9 1.9 0 0 0-2.7 0z" fill="#111" opacity=".55"/>` +
+    `</svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 3 22, crosshair`
 }
 
 /**
@@ -32,6 +45,7 @@ export function PdfPageView({
   annotations,
   searchQuery,
   activeMatch,
+  highlightColor,
   onHighlight,
   onNote,
   onDeleteAnnotation
@@ -92,13 +106,13 @@ export function PdfPageView({
       ref={wrapperRef}
       data-page={page.pageNumber}
       data-tool={tool}
-      className={`relative mx-auto w-fit shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-black/10 ${
-        tool === 'note' ? 'cursor-crosshair' : ''
-      }`}
+      className="relative mx-auto w-fit shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-black/10"
       style={{
         width: viewport.width,
         height: viewport.height,
-        boxShadow: 'var(--page-shadow)'
+        boxShadow: 'var(--page-shadow)',
+        cursor:
+          tool === 'note' ? 'crosshair' : tool === 'highlight' ? markerCursor(highlightColor) : 'auto'
       }}
       onMouseUp={handleMouseUp}
       onClick={handleClick}

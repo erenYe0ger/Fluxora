@@ -43,14 +43,11 @@ function ThemeChoice({
 }
 
 /**
- * Gear button plus its dialog. Colours are deliberately *not* here: they are part of
- * the annotation workflow and live in the reader toolbar, next to the tool that uses them.
+ * Gear button plus its dialog. Appearance is the only setting: annotation colours live
+ * in the reader toolbar, next to the tools that use them.
  */
 export function SettingsMenu({ compact = false }: Props) {
   const [open, setOpen] = useState(false)
-  const theme = useSettingsStore((state) => state.theme)
-  const reset = useSettingsStore((state) => state.reset)
-
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -99,60 +96,27 @@ export function SettingsMenu({ compact = false }: Props) {
               aria-modal="true"
               aria-labelledby={titleId}
               tabIndex={-1}
-              className="animate-pop relative w-full max-w-md overflow-hidden rounded-2xl border border-line bg-surface shadow-lift outline-none"
+              className="animate-pop relative w-full max-w-sm overflow-hidden rounded-2xl border border-line bg-surface shadow-lift outline-none"
             >
               <header className="flex items-center justify-between border-b border-line px-5 py-4">
-                <div>
-                  <h2 id={titleId} className="text-sm font-semibold">
-                    Settings
-                  </h2>
-                  <p className="mt-0.5 text-xs text-muted">
-                    Applied instantly, stored on this device.
-                  </p>
-                </div>
+                <h2 id={titleId} className="text-sm font-semibold">
+                  Settings
+                </h2>
                 <IconButton label="Close settings" onClick={() => setOpen(false)} size="sm">
                   <CloseIcon />
                 </IconButton>
               </header>
 
-              <div className="space-y-6 px-5 py-5">
-                <section>
-                  <h3 className="mb-2 text-xs font-medium tracking-wide text-muted uppercase">
-                    Appearance
-                  </h3>
-                  <div className="flex gap-2">
-                    <ThemeChoice theme="dark" label="Dark">
-                      <MoonIcon />
-                    </ThemeChoice>
-                    <ThemeChoice theme="light" label="Light">
-                      <SunIcon />
-                    </ThemeChoice>
-                  </div>
-                  <p className="mt-2 text-xs text-muted">
-                    Currently {theme}. Dark is the default and easier on the eyes for long reads.
-                  </p>
-                </section>
-
-                <section>
-                  <h3 className="mb-2 text-xs font-medium tracking-wide text-muted uppercase">
-                    Annotations
-                  </h3>
-                  <p className="text-xs leading-relaxed text-muted">
-                    Highlight and note colours are chosen in the reader, from the toolbar next to the
-                    tool you are using. <span className="text-ink">Ctrl/⌘ + Z</span> undoes the last
-                    annotation.
-                  </p>
-                </section>
+              <div className="px-5 py-5">
+                <div className="flex gap-2">
+                  <ThemeChoice theme="dark" label="Dark">
+                    <MoonIcon />
+                  </ThemeChoice>
+                  <ThemeChoice theme="light" label="Light">
+                    <SunIcon />
+                  </ThemeChoice>
+                </div>
               </div>
-
-              <footer className="flex items-center justify-between border-t border-line bg-surface-2 px-5 py-3">
-                <Button size="sm" variant="danger" onClick={reset}>
-                  Reset to defaults
-                </Button>
-                <Button size="sm" variant="primary" onClick={() => setOpen(false)}>
-                  Done
-                </Button>
-              </footer>
             </div>
           </div>,
           document.body

@@ -70,9 +70,12 @@ export function Toolbar({
 
   const highlightColor = useSettingsStore((state) => state.highlightColor)
   const noteColor = useSettingsStore((state) => state.noteColor)
-  const recentColors = useSettingsStore((state) => state.recentColors)
+  const customHighlightColor = useSettingsStore((state) => state.customHighlightColor)
+  const customNoteColor = useSettingsStore((state) => state.customNoteColor)
   const setHighlightColor = useSettingsStore((state) => state.setHighlightColor)
   const setNoteColor = useSettingsStore((state) => state.setNoteColor)
+  const setCustomHighlightColor = useSettingsStore((state) => state.setCustomHighlightColor)
+  const setCustomNoteColor = useSettingsStore((state) => state.setCustomNoteColor)
 
   const jump = useCallback(
     (page: number) => {
@@ -160,8 +163,9 @@ export function Toolbar({
             label="Highlight colour"
             presets={HIGHLIGHT_PRESETS}
             value={highlightColor}
+            customColor={customHighlightColor}
             onChange={setHighlightColor}
-            recentColors={recentColors}
+            onCustomColor={setCustomHighlightColor}
           />
         )}
         {tool === 'note' && (
@@ -169,8 +173,9 @@ export function Toolbar({
             label="Note colour"
             presets={NOTE_PRESETS}
             value={noteColor}
+            customColor={customNoteColor}
             onChange={setNoteColor}
-            recentColors={recentColors}
+            onCustomColor={setCustomNoteColor}
           />
         )}
 
