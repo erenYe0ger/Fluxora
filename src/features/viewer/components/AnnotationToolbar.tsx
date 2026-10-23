@@ -7,7 +7,6 @@ import {
   DRAW_PRESETS,
   useSettingsStore
 } from '@features/settings'
-import { ColorPicker } from './ColorPicker'
 import { CursorIcon, HighlighterIcon, NoteIcon, PencilIcon, TextIcon, CloseIcon } from '@shared/ui/icons'
 
 type Props = {
@@ -15,8 +14,6 @@ type Props = {
   onDrawThicknessChange: (thickness: number) => void
   drawColor: string
   drawThickness: number
-  customDrawColor: string | null
-  onCustomDrawColor: (color: string) => void
   onTextColorChange: (color: string) => void
   onTextFontFamilyChange: (fontFamily: string) => void
   onTextFontSizeChange: (fontSize: number) => void
@@ -29,34 +26,43 @@ type Props = {
   textBold: boolean
   textItalic: boolean
   textUnderline: boolean
-  customTextColor: string | null
-  onCustomTextColor: (color: string) => void
 }
 
-const TOOLS: { id: Tool; label: string; hint: string; icon: ReactNode; hasOptions: boolean }[] = [
-  { id: 'select', label: 'Select', hint: 'Select text (V)', icon: <CursorIcon />, hasOptions: false },
-  {
-    id: 'highlight',
-    label: 'Highlight',
-    hint: 'Select text to highlight (H)',
-    icon: <HighlighterIcon />,
-    hasOptions: true
-  },
-  { id: 'note', label: 'Note', hint: 'Click the page to add a note (N)', icon: <NoteIcon />, hasOptions: true },
-  { id: 'draw', label: 'Draw', hint: 'Draw on the page (D)', icon: <PencilIcon />, hasOptions: true },
-  { id: 'text', label: 'Text', hint: 'Add text to the page (T)', icon: <TextIcon />, hasOptions: true }
+const TOOLS: { id: Tool; label: string; hint: string; icon: ReactNode }[] = [
+  { id: 'select', label: 'Select', hint: 'Select text (V)', icon: <CursorIcon /> },
+  { id: 'highlight', label: 'Highlight', hint: 'Select text to highlight (H)', icon: <HighlighterIcon /> },
+  { id: 'note', label: 'Note', hint: 'Click the page to add a note (N)', icon: <NoteIcon /> },
+  { id: 'draw', label: 'Draw', hint: 'Draw on the page (D)', icon: <PencilIcon /> },
+  { id: 'text', label: 'Text', hint: 'Add text to the page (T)', icon: <TextIcon /> }
 ]
 
-/** Tools that show options in the panel below the tool buttons */
-const TOOLS_WITH_OPTIONS: Tool[] = ['highlight', 'note', 'draw', 'text']
+/** Tiny color swatches stacked vertically, fits the 56px sidebar */
+function ColorSwatches({ presets, value, onChange }: { presets: { name: string; value: string }[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      {presets.map((p) => (
+        <button
+          key={p.value}
+          type="button"
+          onClick={() => onChange(p.value)}
+          title={p.name}
+          className={`h-5 w-5 rounded-full border border-black/15 transition hover:scale-110 ${
+            p.value.toLowerCase() === value.toLowerCase() ? 'ring-1 ring-accent ring-offset-1 ring-offset-surface' : ''
+          }`}
+          style={{ backgroundColor: p.value }}
+          aria-label={p.name}
+          aria-pressed={p.value.toLowerCase() === value.toLowerCase()}
+        />
+      ))}
+    </div>
+  )
+}
 
 export function AnnotationToolbar({
   onDrawColorChange,
   onDrawThicknessChange,
   drawColor,
   drawThickness,
-  customDrawColor,
-  onCustomDrawColor,
   onTextColorChange,
   onTextFontFamilyChange,
   onTextFontSizeChange,
@@ -68,217 +74,105 @@ export function AnnotationToolbar({
   textFontSize,
   textBold,
   textItalic,
-  textUnderline,
-  customTextColor,
-  onCustomTextColor
+  textUnderline
 }: Props) {
-  const tool = useViewerStore((state) => state.tool)
-  const setTool = useViewerStore((state) => state.setTool)
-
-  const highlightColor = useSettingsStore((state) => state.highlightColor)
-  const noteColor = useSettingsStore((state) => state.noteColor)
-  const customHighlightColor = useSettingsStore((state) => state.customHighlightColor)
-  const customNoteColor = useSettingsStore((state) => state.customNoteColor)
-  const setHighlightColor = useSettingsStore((state) => state.setHighlightColor)
-  const setNoteColor = useSettingsStore((state) => state.setNoteColor)
-  const setCustomHighlightColor = useSettingsStore((state) => state.setCustomHighlightColor)
-  const setCustomNoteColor = useSettingsStore((state) => state.setCustomNoteColor)
-
-  const showToolOptions = TOOLS_WITH_OPTIONS.includes(tool)
+  const tool = useViewerStore((s) => s.tool)
+  const setTool = useViewerStore((s) => s.setTool)
+  const highlightColor = useSettingsStore((s) => s.highlightColor)
+  const noteColor = useSettingsStore((s) => s.noteColor)
+  const setHighlightColor = useSettingsStore((s) => s.setHighlightColor)
+  const setNoteColor = useSettingsStore((s) => s.setNoteColor)
 
   return (
     <aside className="flex w-14 shrink-0 flex-col border-l border-line bg-surface">
-      {/* Tool buttons — always visible at top */}
-      <div className="flex flex-col items-center gap-1 p-2">
-        <div
-          role="toolbar"
-          aria-label="Annotation tools"
-          className="flex flex-col items-center gap-1 rounded-xl border border-line bg-surface-2 p-1"
-        >
-          {TOOLS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                setTool(item.id)
-              }}
-              aria-pressed={tool === item.id}
-              title={item.hint}
-              className={`flex h-9 w-9 items-center justify-center rounded-lg transition duration-150 ${
-                tool === item.id
-                  ? 'bg-accent text-accent-ink shadow-soft'
-                  : 'text-muted hover:bg-elevated hover:text-ink'
-              }`}
-            >
-              {item.icon}
-            </button>
-          ))}
-        </div>
+      {/* Tool buttons — always at top */}
+      <div className="flex flex-col items-center gap-0.5 p-1.5">
+        {TOOLS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTool(item.id)}
+            aria-pressed={tool === item.id}
+            title={item.hint}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+              tool === item.id ? 'bg-accent text-accent-ink shadow-soft' : 'text-muted hover:bg-elevated hover:text-ink'
+            }`}
+          >
+            {item.icon}
+          </button>
+        ))}
       </div>
 
-      {/* Options panel — scrollable, contained within sidebar */}
-      {showToolOptions && (
-        <div className="flex flex-1 flex-col overflow-y-auto border-t border-line">
-          {/* Header with back button */}
-          <div className="flex items-center justify-between border-b border-line px-2 py-1.5">
-            <span className="text-[10px] font-medium uppercase tracking-wide text-muted">
-              {tool === 'highlight' && 'Highlight'}
-              {tool === 'note' && 'Note'}
-              {tool === 'draw' && 'Draw'}
-              {tool === 'text' && 'Text'}
-            </span>
-            <button
-              type="button"
-              onClick={() => setTool('select')}
-              title="Close options"
-              className="flex h-5 w-5 items-center justify-center rounded text-muted transition hover:bg-elevated hover:text-ink"
-            >
-              <CloseIcon className="h-3 w-3" />
-            </button>
-          </div>
+      {/* Tool-specific controls — pure vertical, no horizontal layouts */}
+      {tool === 'highlight' && (
+        <div className="flex flex-col items-center gap-2 p-1.5">
+          <ColorSwatches presets={HIGHLIGHT_PRESETS} value={highlightColor} onChange={setHighlightColor} />
+          <button type="button" onClick={() => setTool('select')} title="Close" className="flex h-6 w-6 items-center justify-center rounded text-muted transition hover:bg-elevated hover:text-ink">
+            <CloseIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
-          {/* Tool-specific options */}
-          <div className="flex flex-col items-center gap-2 p-2">
-            {tool === 'highlight' && (
-              <ColorPicker
-                label="Highlight colour"
-                presets={HIGHLIGHT_PRESETS}
-                value={highlightColor}
-                customColor={customHighlightColor}
-                onChange={setHighlightColor}
-                onCustomColor={setCustomHighlightColor}
-              />
-            )}
-            {tool === 'note' && (
-              <ColorPicker
-                label="Note colour"
-                presets={NOTE_PRESETS}
-                value={noteColor}
-                customColor={customNoteColor}
-                onChange={setNoteColor}
-                onCustomColor={setCustomNoteColor}
-              />
-            )}
-            {tool === 'draw' && (
-              <div className="flex w-full flex-col items-center gap-2">
-                <ColorPicker
-                  label="Draw colour"
-                  presets={DRAW_PRESETS}
-                  value={drawColor}
-                  customColor={customDrawColor}
-                  onChange={onDrawColorChange}
-                  onCustomColor={onCustomDrawColor}
-                />
-                {/* Thickness slider */}
-                <div className="flex w-full flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted">Thickness</span>
-                  <input
-                    type="range"
-                    min={1}
-                    max={20}
-                    value={drawThickness}
-                    onChange={(e) => onDrawThicknessChange(Number(e.target.value))}
-                    className="h-16 w-4 cursor-pointer"
-                    aria-label="Draw thickness"
-                    style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
-                  />
-                  <span className="text-[10px] font-medium text-ink">{drawThickness}px</span>
-                </div>
-              </div>
-            )}
-            {tool === 'text' && (
-              <div className="flex w-full flex-col items-center gap-2 rounded-xl border border-line bg-surface-2 p-2">
-                {/* Color picker */}
-                <ColorPicker
-                  label="Text colour"
-                  presets={DRAW_PRESETS}
-                  value={textColor}
-                  customColor={customTextColor}
-                  onChange={onTextColorChange}
-                  onCustomColor={onCustomTextColor}
-                />
-                {/* Font family */}
-                <div className="flex w-full flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted">Font</span>
-                  <select
-                    value={textFontFamily}
-                    onChange={(e) => onTextFontFamilyChange(e.target.value)}
-                    className="w-full rounded-md border border-line bg-surface-2 p-1 text-[10px] text-ink outline-none focus:border-accent/60"
-                    aria-label="Font family"
-                  >
-                    <option value="Arial">Arial</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Times New Roman">Times</option>
-                    <option value="Courier New">Courier</option>
-                    <option value="Verdana">Verdana</option>
-                  </select>
-                </div>
-                {/* Font size */}
-                <div className="flex w-full flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted">Size</span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => onTextFontSizeChange(Math.max(8, textFontSize - 2))}
-                      className="flex h-5 w-5 items-center justify-center rounded bg-surface text-[10px] text-ink hover:bg-elevated"
-                      aria-label="Decrease font size"
-                    >
-                      -
-                    </button>
-                    <span className="w-6 text-center text-[10px] font-medium text-ink">{textFontSize}</span>
-                    <button
-                      type="button"
-                      onClick={() => onTextFontSizeChange(Math.min(72, textFontSize + 2))}
-                      className="flex h-5 w-5 items-center justify-center rounded bg-surface text-[10px] text-ink hover:bg-elevated"
-                      aria-label="Increase font size"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                {/* Style buttons */}
-                <div className="flex w-full flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted">Style</span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => onTextBoldChange(!textBold)}
-                      aria-pressed={textBold}
-                      aria-label="Bold"
-                      className={`flex h-6 w-6 items-center justify-center rounded text-[10px] font-bold transition ${
-                        textBold ? 'bg-accent text-accent-ink' : 'bg-surface text-muted hover:bg-elevated hover:text-ink'
-                      }`}
-                    >
-                      B
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onTextItalicChange(!textItalic)}
-                      aria-pressed={textItalic}
-                      aria-label="Italic"
-                      className={`flex h-6 w-6 items-center justify-center rounded text-[10px] italic transition ${
-                        textItalic ? 'bg-accent text-accent-ink' : 'bg-surface text-muted hover:bg-elevated hover:text-ink'
-                      }`}
-                    >
-                      I
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onTextUnderlineChange(!textUnderline)}
-                      aria-pressed={textUnderline}
-                      aria-label="Underline"
-                      className={`flex h-6 w-6 items-center justify-center rounded text-[10px] transition ${
-                        textUnderline ? 'bg-accent text-accent-ink' : 'bg-surface text-muted hover:bg-elevated hover:text-ink'
-                      }`}
-                      style={{ textDecoration: textUnderline ? 'underline' : 'none' }}
-                    >
-                      U
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+      {tool === 'note' && (
+        <div className="flex flex-col items-center gap-2 p-1.5">
+          <ColorSwatches presets={NOTE_PRESETS} value={noteColor} onChange={setNoteColor} />
+          <button type="button" onClick={() => setTool('select')} title="Close" className="flex h-6 w-6 items-center justify-center rounded text-muted transition hover:bg-elevated hover:text-ink">
+            <CloseIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {tool === 'draw' && (
+        <div className="flex flex-col items-center gap-2 p-1.5">
+          <ColorSwatches presets={DRAW_PRESETS} value={drawColor} onChange={onDrawColorChange} />
+          <input
+            type="range" min={1} max={20} value={drawThickness}
+            onChange={(e) => onDrawThicknessChange(Number(e.target.value))}
+            className="h-10 w-3 cursor-pointer"
+            aria-label="Thickness"
+            style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+          />
+          <span className="text-[9px] font-medium text-ink">{drawThickness}</span>
+          <button type="button" onClick={() => setTool('select')} title="Close" className="flex h-6 w-6 items-center justify-center rounded text-muted transition hover:bg-elevated hover:text-ink">
+            <CloseIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {tool === 'text' && (
+        <div className="flex flex-col items-center gap-2 p-1.5">
+          <ColorSwatches presets={DRAW_PRESETS} value={textColor} onChange={onTextColorChange} />
+          <button
+            type="button" onClick={() => {
+              const fonts = ['Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana']
+              const idx = fonts.findIndex((f) => textFontFamily.startsWith(f))
+              onTextFontFamilyChange(fonts[(idx + 1) % fonts.length])
+            }}
+            title={textFontFamily}
+            className="flex h-6 w-8 items-center justify-center rounded bg-surface-2 text-[9px] text-muted transition hover:bg-elevated hover:text-ink"
+          >
+            Aa
+          </button>
+          <div className="flex flex-col items-center gap-0.5">
+            <button type="button" onClick={() => onTextFontSizeChange(Math.min(72, textFontSize + 2))} className="flex h-4 w-6 items-center justify-center rounded bg-surface-2 text-[9px] text-muted transition hover:bg-elevated hover:text-ink" aria-label="Increase size">+</button>
+            <span className="text-[9px] font-medium text-ink">{textFontSize}</span>
+            <button type="button" onClick={() => onTextFontSizeChange(Math.max(8, textFontSize - 2))} className="flex h-4 w-6 items-center justify-center rounded bg-surface-2 text-[9px] text-muted transition hover:bg-elevated hover:text-ink" aria-label="Decrease size">−</button>
           </div>
+          <button type="button" onClick={() => onTextBoldChange(!textBold)} aria-pressed={textBold} aria-label="Bold" title="Bold"
+            className={`flex h-6 w-8 items-center justify-center rounded text-[10px] font-bold transition ${textBold ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted hover:bg-elevated hover:text-ink'}`}>
+            B
+          </button>
+          <button type="button" onClick={() => onTextItalicChange(!textItalic)} aria-pressed={textItalic} aria-label="Italic" title="Italic"
+            className={`flex h-6 w-8 items-center justify-center rounded text-[10px] italic transition ${textItalic ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted hover:bg-elevated hover:text-ink'}`}>
+            I
+          </button>
+          <button type="button" onClick={() => onTextUnderlineChange(!textUnderline)} aria-pressed={textUnderline} aria-label="Underline" title="Underline"
+            className={`flex h-6 w-8 items-center justify-center rounded text-[10px] transition ${textUnderline ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-muted hover:bg-elevated hover:text-ink'}`}>
+            U
+          </button>
+          <button type="button" onClick={() => setTool('select')} title="Close" className="flex h-6 w-6 items-center justify-center rounded text-muted transition hover:bg-elevated hover:text-ink">
+            <CloseIcon className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
     </aside>

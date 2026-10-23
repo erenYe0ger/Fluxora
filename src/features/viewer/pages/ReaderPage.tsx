@@ -40,24 +40,20 @@ export function ReaderPage() {
   const noteColor = useSettingsStore((state) => state.noteColor)
   const drawColor = useSettingsStore((state) => state.drawColor)
   const drawThickness = useSettingsStore((state) => state.drawThickness)
-  const customDrawColor = useSettingsStore((state) => state.customDrawColor)
   const setDrawColor = useSettingsStore((state) => state.setDrawColor)
   const setDrawThickness = useSettingsStore((state) => state.setDrawThickness)
-  const setCustomDrawColor = useSettingsStore((state) => state.setCustomDrawColor)
   const textColor = useSettingsStore((state) => state.textColor)
   const textFontFamily = useSettingsStore((state) => state.textFontFamily)
   const textFontSize = useSettingsStore((state) => state.textFontSize)
   const textBold = useSettingsStore((state) => state.textBold)
   const textItalic = useSettingsStore((state) => state.textItalic)
   const textUnderline = useSettingsStore((state) => state.textUnderline)
-  const customTextColor = useSettingsStore((state) => state.customTextColor)
   const setTextColor = useSettingsStore((state) => state.setTextColor)
   const setTextFontFamily = useSettingsStore((state) => state.setTextFontFamily)
   const setTextFontSize = useSettingsStore((state) => state.setTextFontSize)
   const setTextBold = useSettingsStore((state) => state.setTextBold)
   const setTextItalic = useSettingsStore((state) => state.setTextItalic)
   const setTextUnderline = useSettingsStore((state) => state.setTextUnderline)
-  const setCustomTextColor = useSettingsStore((state) => state.setCustomTextColor)
 
   const { containerRef } = useReaderLayout(pages)
 
@@ -248,8 +244,6 @@ export function ReaderPage() {
           onDrawThicknessChange={setDrawThickness}
           drawColor={drawColor}
           drawThickness={drawThickness}
-          customDrawColor={customDrawColor}
-          onCustomDrawColor={setCustomDrawColor}
           onTextColorChange={setTextColor}
           onTextFontFamilyChange={setTextFontFamily}
           onTextFontSizeChange={setTextFontSize}
@@ -262,8 +256,6 @@ export function ReaderPage() {
           textBold={textBold}
           textItalic={textItalic}
           textUnderline={textUnderline}
-          customTextColor={customTextColor}
-          onCustomTextColor={setCustomTextColor}
         />
       </div>
     </div>
