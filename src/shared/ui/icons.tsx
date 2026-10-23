@@ -222,9 +222,7 @@ export function PencilIcon(props: IconProps) {
 export function TextIcon(props: IconProps) {
   return (
     <Svg {...props}>
-      <path d="M4 7V4h16v3" />
-      <path d="M12 4v16" />
-      <path d="M8 20h8" />
+      <path d="M9 4v16M9 4h6M9 12h6" />
     </Svg>
   )
 }

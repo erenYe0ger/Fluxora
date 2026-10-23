@@ -102,6 +102,8 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
 
         if (annotation.kind === 'draw') {
           const drawAnnotation = annotation as DrawAnnotation
+          // viewBox="0 0 1 1" so strokeWidth 0.004 = ~3px on a 720px page (good default)
+          const sw = (drawAnnotation.thickness ?? 3) * 0.004
           return (
             <svg
               key={annotation.id}
@@ -116,7 +118,7 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
                   d={path}
                   fill="none"
                   stroke={drawAnnotation.color}
-                  strokeWidth={drawAnnotation.thickness * 0.01}
+                  strokeWidth={sw}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -136,7 +138,7 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove }: Props) 
                 top: `${textAnnotation.y * 100}%`,
                 color: textAnnotation.color,
                 fontFamily: textAnnotation.fontFamily,
-                fontSize: `${textAnnotation.fontSize * 0.01}px`,
+                fontSize: `${textAnnotation.fontSize}px`,
                 fontWeight: textAnnotation.bold ? 'bold' : 'normal',
                 fontStyle: textAnnotation.italic ? 'italic' : 'normal',
                 textDecoration: textAnnotation.underline ? 'underline' : 'none'
