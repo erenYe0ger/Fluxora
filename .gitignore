@@ -1,0 +1,10 @@
+node_modules
+dist
+.npm-cache
+*.log
+.DS_Store
+coverage
+playwright-report
+.terraform
+.env
+.env.local

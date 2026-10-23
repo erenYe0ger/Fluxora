@@ -1,0 +1,10 @@
+# Dependencies are installed inside this container. Host node_modules is bind-mounted
+# over, so the dev image must own a clean copy to avoid binary/OS mismatches.
+node_modules
+dist
+.git
+.github
+*.log
+.DS_Store
+coverage
+playwright-report
