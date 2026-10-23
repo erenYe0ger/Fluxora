@@ -4,7 +4,7 @@ import type { PDFPageProxy } from 'pdfjs-dist'
 import { usePageRender } from '../hooks/usePageRender'
 import { useTextLayer } from '../hooks/useTextLayer'
 import { useSearchRects } from '../hooks/useSearchRects'
-import { markerCursor } from '../lib/cursor'
+import { markerCursor, selectCursor } from '../lib/cursor'
 import { useInView } from '@shared/hooks/useInView'
 import type { Tool } from '../store/viewerStore'
 import type { Annotation, Rect } from '@features/annotations'
@@ -162,7 +162,11 @@ export function PdfPageView({
         height: viewport.height,
         boxShadow: 'var(--page-shadow)',
         cursor:
-          tool === 'note' ? 'crosshair' : tool === 'highlight' ? markerCursor(highlightColor) : 'auto'
+          tool === 'note'
+            ? 'crosshair'
+            : tool === 'highlight'
+              ? markerCursor(highlightColor)
+              : selectCursor()
       }}
       onMouseUp={handleMouseUp}
       onClick={handleClick}
@@ -237,5 +241,6 @@ export function PdfPageView({
     </div>
   )
 }
+
 
 

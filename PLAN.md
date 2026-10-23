@@ -125,9 +125,20 @@ Docker
   until it wraps. The width is chosen so the full "Find in document" placeholder fits *with* those
   reserving cells in place — a narrower box clips the placeholder before the user has typed anything.
 - **The marker cursor is the toolbar's highlighter.** `markerCursor` reuses the exact
-  `HighlighterIcon` path, stroked in the active colour over a soft dark halo (a pale colour would
-  otherwise vanish on a white page). One glyph in two places means the pointer always matches the
-  button the user just pressed.
+  `HighlighterIcon` path — filled with the active colour and outlined in black so it reads on any
+  page — and select mode uses the toolbar's arrow (`selectCursor`). `src/styles/index.css` makes the
+  text layer inherit that cursor, otherwise pdf.js's I-beam replaces it the moment the pointer
+  crosses a word. One glyph in two places means the pointer always matches the button just pressed.
+- **The custom slot wears one face.** It is always the rainbow disc; the chosen colour shows as the
+  selection ring, not by repainting the slot. Hover changes only the ring — no `scale`, which made
+  the conic gradient look hazy and grew the `+` off-centre.
+- **The custom picker is ours, not the platform's.** Clicking the slot opens a small panel with a
+  saturation/value square, a hue slider and the hex preview, and its OK/Cancel live *inside* that
+  panel — the native colour dialog had no room for a confirm step, so it was staged in a second
+  popover. Hue is kept as state (`lib/color.ts`) so dragging to black does not lose it.
+- **One clear button in the find field.** The input is `type="search"` for its semantics, but the
+  engine's own `::-webkit-search-cancel-button` is switched off in CSS; its ✕ sat immediately after
+  the text and duplicated the real one on the right.
 - **Double click removes a highlight.** In highlight mode the second click in one spot deletes the
   highlight under the pointer instead of adding a duplicate. Detected by click timing inside the
   `mouseup` handler, not by `dblclick`: by the time `dblclick` fires we would already have created

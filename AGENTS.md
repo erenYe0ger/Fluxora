@@ -123,8 +123,9 @@ that stops being "one feature's concern" moves down to `shared/` instead.
 - **Keep effect dependencies honest.** If a hook takes a callback it calls later, hold it in a ref
   rather than putting it in the effect's dependency list — an inline arrow from a caller would then
   re-run (and, in the search hook, loop) on every render.
-- **Tool cursors mirror the toolbar icon.** `markerCursor` must draw the same path as
-  `HighlighterIcon`; if the icon changes, the cursor changes with it.
+- **Tool cursors mirror the toolbar icon.** `markerCursor`/`selectCursor` must draw the same paths
+  as `HighlighterIcon`/`CursorIcon`, and the text layer inherits the page cursor in tool modes so the
+  I-beam never replaces them. If an icon changes, its cursor changes with it.
 - **Anything the user drops on a page stays inside that page.** Note composers and note popovers are
   clamped/flipped against the page rect, and drag positions are measured against live bounds.
 
