@@ -145,6 +145,23 @@ that stops being "one feature's concern" moves down to `shared/` instead.
 - Anything that crosses layers (import → library → viewer) gets an integration test.
 - Tests must not need network or a real PDF file: use `pdf-lib`-free fixtures, plain byte stubs, or fake-indexeddb.
 
+## Known issues
+
+**Windows + Vite 8 `spawn EPERM`**
+Vite 8 uses rolldown's `externalize-deps` plugin, which can fail on Windows with `EPERM: spawn
+EPERM` when resolving config dependencies. If `npm run verify` fails on Windows with this error,
+the fix is to nuke and reinstall:
+
+```bash
+rmdir /s /q node_modules
+del package-lock.json
+npm install
+npm run verify
+```
+
+This project is pinned to **Vite 7 + `@vitejs/plugin-react@5`** to avoid this issue. Keep those
+versions together: any upgrade to Vite 8 requires verifying the Windows build independently.
+
 ## When in doubt
 
 Prefer the smallest change that keeps the app usable, document the trade-off in `PLAN.md` under

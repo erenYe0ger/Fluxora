@@ -19,7 +19,7 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 900,
-    rolldownOptions: {
+    rollupOptions: {
       output: {
         // pdf.js is large and only needed inside the reader; keep it in its own chunk
         // so the library screen stays light.

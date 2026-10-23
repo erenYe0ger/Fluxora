@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
+import { waitFor } from '@testing-library/dom'
 import { useAnnotations } from '@features/annotations/hooks/useAnnotations'
 import { deleteAnnotation, listAnnotations } from '@features/annotations/storage'
 
