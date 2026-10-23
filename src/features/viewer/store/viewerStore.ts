@@ -3,22 +3,20 @@ import { clampScale, zoomIn, zoomOut } from '../lib/zoom'
 
 export type Tool = 'select' | 'highlight' | 'note'
 export type SidebarTab = 'thumbnails' | 'annotations'
-export type FitMode = 'fit' | 'custom'
 
 type ViewerState = {
   scale: number
-  fitMode: FitMode
+  /** True until the reader zooms manually; while true the layout keeps fitting the width. */
+  autoFit: boolean
   tool: Tool
   sidebarOpen: boolean
   sidebarTab: SidebarTab
   currentPage: number
-  /** User-driven zoom: also leaves fit mode. */
   setScale: (scale: number) => void
-  /** Layout-driven zoom: keeps the active fit mode. */
+  /** Layout-driven zoom: does not count as a manual zoom. */
   applyScale: (scale: number) => void
   zoomIn: () => void
   zoomOut: () => void
-  setFitMode: (mode: FitMode) => void
   setTool: (tool: Tool) => void
   toggleSidebar: () => void
   setSidebarTab: (tab: SidebarTab) => void
@@ -28,7 +26,7 @@ type ViewerState = {
 
 const initial = {
   scale: 1,
-  fitMode: 'fit' as FitMode,
+  autoFit: true,
   tool: 'select' as Tool,
   sidebarOpen: true,
   sidebarTab: 'thumbnails' as SidebarTab,
@@ -38,11 +36,10 @@ const initial = {
 /** UI-only state shared by the reader toolbar, sidebar and page views. */
 export const useViewerStore = create<ViewerState>((set) => ({
   ...initial,
-  setScale: (scale) => set({ scale: clampScale(scale), fitMode: 'custom' }),
+  setScale: (scale) => set({ scale: clampScale(scale), autoFit: false }),
   applyScale: (scale) => set({ scale: clampScale(scale) }),
-  zoomIn: () => set((state) => ({ scale: zoomIn(state.scale), fitMode: 'custom' })),
-  zoomOut: () => set((state) => ({ scale: zoomOut(state.scale), fitMode: 'custom' })),
-  setFitMode: (fitMode) => set({ fitMode }),
+  zoomIn: () => set((state) => ({ scale: zoomIn(state.scale), autoFit: false })),
+  zoomOut: () => set((state) => ({ scale: zoomOut(state.scale), autoFit: false })),
   setTool: (tool) => set({ tool }),
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setSidebarTab: (sidebarTab) => set({ sidebarTab, sidebarOpen: true }),

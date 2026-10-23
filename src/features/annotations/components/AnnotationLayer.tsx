@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Annotation } from '../types'
 import { toCssBox } from '../lib/geometry'
+import { NoteIcon } from '@shared/ui/icons'
 
 type Props = {
   annotations: Annotation[]
@@ -42,13 +43,13 @@ export function AnnotationLayer({ annotations, onDelete }: Props) {
               type="button"
               aria-label="Toggle note"
               title={annotation.text}
-              className="flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/80 shadow-md transition duration-150 hover:scale-110"
+              className="flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/85 text-black/60 shadow-md transition duration-150 hover:scale-110"
               style={{ backgroundColor: annotation.color }}
               onClick={() =>
                 setOpenNote((current) => (current === annotation.id ? null : annotation.id))
               }
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-black/50" />
+              <NoteIcon className="h-3 w-3" />
             </button>
 
             {openNote === annotation.id && (

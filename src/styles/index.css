@@ -217,12 +217,18 @@ body {
 
 /* ---------- annotations & search ---------- */
 .annotation-highlight {
-  /* Multiply keeps the text underneath readable on a white page in both themes. */
+  /* Translucent so the text underneath stays readable: this is a highlighter, not paint.
+     Multiply keeps the page's dark glyphs dark instead of washing them out. */
+  opacity: 0.42;
   mix-blend-mode: multiply;
   border-radius: 3px;
   transition:
     filter 0.15s ease,
     opacity 0.15s ease;
+}
+
+.annotation-highlight:hover {
+  opacity: 0.62;
 }
 
 .search-hit {

@@ -2,29 +2,30 @@ import { useEffect, useRef } from 'react'
 import type { PDFPageProxy } from 'pdfjs-dist'
 import { useElementSize } from '@shared/hooks/useElementSize'
 import { useViewerStore } from '../store/viewerStore'
-import { fitPageScale } from '../lib/zoom'
+import { fitWidthScale } from '../lib/zoom'
+
+/** Breathing room left and right of the page, on top of the scroll area's own padding. */
+const SIDE_INSET = 24
 
 /**
  * Owns the scroll container: keeps "current page" in sync with scroll position and
- * recomputes the fit-page scale when the viewport resizes or the user re-enters fit mode.
+ * keeps the page fitted to the reading width until the user zooms manually.
  */
 export function useReaderLayout(pages: PDFPageProxy[]) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { width, height } = useElementSize(containerRef)
-  const fitMode = useViewerStore((state) => state.fitMode)
+  const { width } = useElementSize(containerRef)
+  const autoFit = useViewerStore((state) => state.autoFit)
   const applyScale = useViewerStore((state) => state.applyScale)
   const setCurrentPage = useViewerStore((state) => state.setCurrentPage)
 
   const firstPage = pages[0]
-  // Plain numbers so the effect below does not re-run on every render.
+  // A plain number so the effect below does not re-run on every render.
   const pageWidth = firstPage ? firstPage.getViewport({ scale: 1 }).width : 0
-  const pageHeight = firstPage ? firstPage.getViewport({ scale: 1 }).height : 0
 
   useEffect(() => {
-    if (fitMode !== 'fit') return
-    // The scroll area already has padding, so the page may use the whole content box.
-    applyScale(fitPageScale({ width, height }, { width: pageWidth, height: pageHeight }))
-  }, [applyScale, fitMode, pageWidth, pageHeight, width, height])
+    if (!autoFit) return
+    applyScale(fitWidthScale(width, pageWidth, SIDE_INSET))
+  }, [applyScale, autoFit, pageWidth, width])
 
   useEffect(() => {
     const container = containerRef.current

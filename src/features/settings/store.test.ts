@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   DEFAULT_HIGHLIGHT_COLOR,
+  DEFAULT_NOTE_COLOR,
   HIGHLIGHT_PRESETS,
+  NOTE_PRESETS,
   isPresetColor,
   useSettingsStore
 } from './store'
@@ -54,5 +56,20 @@ describe('settings store', () => {
     expect(useSettingsStore.getState().theme).toBe('dark')
     expect(useSettingsStore.getState().highlightColor).toBe(DEFAULT_HIGHLIGHT_COLOR)
     expect(useSettingsStore.getState().recentColors).toEqual([])
+  })
+
+  it('keeps note colour independent from highlight colour', () => {
+    useSettingsStore.getState().setHighlightColor('#123456')
+    useSettingsStore.getState().setNoteColor('#654321')
+
+    expect(useSettingsStore.getState().highlightColor).toBe('#123456')
+    expect(useSettingsStore.getState().noteColor).toBe('#654321')
+  })
+
+  it('starts notes from the note palette, not the highlight one', () => {
+    useSettingsStore.getState().reset()
+    expect(useSettingsStore.getState().noteColor).toBe(DEFAULT_NOTE_COLOR)
+    expect(DEFAULT_NOTE_COLOR).not.toBe(DEFAULT_HIGHLIGHT_COLOR)
+    expect(NOTE_PRESETS).not.toEqual(HIGHLIGHT_PRESETS)
   })
 })

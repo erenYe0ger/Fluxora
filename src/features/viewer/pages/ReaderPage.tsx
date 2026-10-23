@@ -35,6 +35,7 @@ export function ReaderPage() {
   const toggleSidebar = useViewerStore((state) => state.toggleSidebar)
 
   const highlightColor = useSettingsStore((state) => state.highlightColor)
+  const noteColor = useSettingsStore((state) => state.noteColor)
 
   const { containerRef } = useReaderLayout(pages)
 
@@ -45,7 +46,8 @@ export function ReaderPage() {
   }, [])
 
   const search = useDocumentSearch(doc, jumpToPage)
-  useReaderShortcuts(jumpToPage, search.clear)
+  const undo = annotations.undo
+  useReaderShortcuts(jumpToPage, search.clear, undo)
 
   // Each document starts with a clean viewer state (tool, zoom, page).
   useEffect(() => reset(), [id, reset])
@@ -90,6 +92,8 @@ export function ReaderPage() {
         onBack={() => navigate('/')}
         onJumpToPage={jumpToPage}
         onExport={exportAnnotations}
+        onUndo={undo}
+        canUndo={annotations.canUndo}
         search={search}
       />
 
@@ -141,7 +145,10 @@ export function ReaderPage() {
           </aside>
         )}
 
-        <main ref={containerRef} className="min-w-0 flex-1 overflow-auto bg-bg p-4 md:p-8">
+        <main
+          ref={containerRef}
+          className="min-w-0 flex-1 overflow-auto bg-bg px-4 pt-5 pb-15 md:px-6 md:pt-6 md:pb-20"
+        >
           {pages.length === 0 && (
             <EmptyState title="Preparing pages" message="Laying out the document…" />
           )}
@@ -176,7 +183,7 @@ export function ReaderPage() {
                       docId: meta?.id ?? '',
                       page: page.pageNumber,
                       kind: 'note',
-                      color: highlightColor,
+                      color: noteColor,
                       ...input
                     })
                   }

@@ -8,14 +8,27 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable
 }
 
-/** Reader keyboard shortcuts (Acrobat-ish): arrows navigate, +/- zoom, v/h/n tools. */
-export function useReaderShortcuts(jumpToPage: (page: number) => void, clearSearch: () => void) {
+/**
+ * Reader keyboard shortcuts (Acrobat-ish): arrows navigate, +/- zoom, v/h/n tools,
+ * Ctrl/Cmd+Z undoes the last annotation.
+ */
+export function useReaderShortcuts(
+  jumpToPage: (page: number) => void,
+  clearSearch: () => void,
+  undo: () => void
+) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return
 
       const store = useViewerStore.getState()
       const { currentPage, setCurrentPage } = store
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        undo()
+        return
+      }
 
       switch (event.key) {
         case 'ArrowRight':
@@ -57,5 +70,5 @@ export function useReaderShortcuts(jumpToPage: (page: number) => void, clearSear
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [clearSearch, jumpToPage])
+  }, [clearSearch, jumpToPage, undo])
 }

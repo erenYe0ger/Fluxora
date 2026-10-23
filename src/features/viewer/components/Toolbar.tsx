@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { useCallback } from 'react'
 import { useViewerStore } from '../store/viewerStore'
 import type { Tool } from '../store/viewerStore'
-import { Button } from '@shared/ui/Button'
 import { IconButton } from '@shared/ui/IconButton'
 import {
   ArrowLeftIcon,
@@ -14,12 +13,18 @@ import {
   MinusIcon,
   NoteIcon,
   PanelIcon,
-  PlusIcon
+  PlusIcon,
+  UndoIcon
 } from '@shared/ui/icons'
 import { SearchBar } from '@features/search'
 import type { SearchBarState } from '@features/search'
-import { SettingsMenu, useSettingsStore } from '@features/settings'
-import { HighlightPicker } from './HighlightPicker'
+import {
+  HIGHLIGHT_PRESETS,
+  NOTE_PRESETS,
+  SettingsMenu,
+  useSettingsStore
+} from '@features/settings'
+import { ColorPicker } from './ColorPicker'
 
 type Props = {
   fileName: string
@@ -27,6 +32,8 @@ type Props = {
   onBack: () => void
   onJumpToPage: (page: number) => void
   onExport: () => void
+  onUndo: () => void
+  canUndo: boolean
   search: SearchBarState
 }
 
@@ -41,9 +48,17 @@ const TOOLS: { id: Tool; label: string; hint: string; icon: ReactNode }[] = [
   { id: 'note', label: 'Note', hint: 'Click the page to add a note (N)', icon: <NoteIcon /> }
 ]
 
-export function Toolbar({ fileName, numPages, onBack, onJumpToPage, onExport, search }: Props) {
+export function Toolbar({
+  fileName,
+  numPages,
+  onBack,
+  onJumpToPage,
+  onExport,
+  onUndo,
+  canUndo,
+  search
+}: Props) {
   const scale = useViewerStore((state) => state.scale)
-  const fitMode = useViewerStore((state) => state.fitMode)
   const tool = useViewerStore((state) => state.tool)
   const sidebarOpen = useViewerStore((state) => state.sidebarOpen)
   const currentPage = useViewerStore((state) => state.currentPage)
@@ -52,10 +67,12 @@ export function Toolbar({ fileName, numPages, onBack, onJumpToPage, onExport, se
   const zoomIn = useViewerStore((state) => state.zoomIn)
   const zoomOut = useViewerStore((state) => state.zoomOut)
   const setScale = useViewerStore((state) => state.setScale)
-  const setFitMode = useViewerStore((state) => state.setFitMode)
 
   const highlightColor = useSettingsStore((state) => state.highlightColor)
+  const noteColor = useSettingsStore((state) => state.noteColor)
+  const recentColors = useSettingsStore((state) => state.recentColors)
   const setHighlightColor = useSettingsStore((state) => state.setHighlightColor)
+  const setNoteColor = useSettingsStore((state) => state.setNoteColor)
 
   const jump = useCallback(
     (page: number) => {
@@ -137,8 +154,24 @@ export function Toolbar({ fileName, numPages, onBack, onJumpToPage, onExport, se
           ))}
         </div>
 
+        {/* Colour belongs to the active tool, and each tool keeps its own. */}
         {tool === 'highlight' && (
-          <HighlightPicker value={highlightColor} onChange={setHighlightColor} />
+          <ColorPicker
+            label="Highlight colour"
+            presets={HIGHLIGHT_PRESETS}
+            value={highlightColor}
+            onChange={setHighlightColor}
+            recentColors={recentColors}
+          />
+        )}
+        {tool === 'note' && (
+          <ColorPicker
+            label="Note colour"
+            presets={NOTE_PRESETS}
+            value={noteColor}
+            onChange={setNoteColor}
+            recentColors={recentColors}
+          />
         )}
 
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
@@ -161,14 +194,14 @@ export function Toolbar({ fileName, numPages, onBack, onJumpToPage, onExport, se
             </IconButton>
           </div>
 
-          <Button
+          <IconButton
+            label="Undo last annotation (Ctrl+Z)"
             size="sm"
-            variant={fitMode === 'fit' ? 'primary' : 'secondary'}
-            onClick={() => setFitMode('fit')}
-            title="Fit the whole page in view"
+            onClick={onUndo}
+            disabled={!canUndo}
           >
-            Fit
-          </Button>
+            <UndoIcon />
+          </IconButton>
 
           <IconButton label="Export annotations as JSON" size="sm" onClick={onExport}>
             <DownloadIcon />
