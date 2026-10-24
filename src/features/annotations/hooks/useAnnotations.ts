@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Annotation, HighlightAnnotation, NoteAnnotation } from '../types'
+import type {
+  Annotation,
+  HighlightAnnotation,
+  NoteAnnotation,
+  DrawAnnotation,
+  TextAnnotation
+} from '../types'
 import { deleteAnnotation, listAnnotations, saveAnnotation } from '../storage'
 
 type NewHighlight = Omit<HighlightAnnotation, 'id' | 'createdAt'>
 type NewNote = Omit<NoteAnnotation, 'id' | 'createdAt'>
+type NewDraw = Omit<DrawAnnotation, 'id' | 'createdAt'>
+type NewText = Omit<TextAnnotation, 'id' | 'createdAt'>
 
 /** Inverse operation we can replay when the user presses Ctrl+Z. */
 type HistoryEntry = { type: 'add' | 'delete'; annotation: Annotation }
@@ -70,6 +78,34 @@ export function useAnnotations(docId: string | undefined) {
     [record]
   )
 
+  const addDraw = useCallback(
+    async (input: NewDraw) => {
+      const annotation: DrawAnnotation = {
+        ...input,
+        id: crypto.randomUUID(),
+        createdAt: Date.now()
+      }
+      await saveAnnotation(annotation)
+      setAnnotations((prev) => [...prev, annotation].sort(byPageThenTime))
+      record({ type: 'add', annotation })
+    },
+    [record]
+  )
+
+  const addText = useCallback(
+    async (input: NewText) => {
+      const annotation: TextAnnotation = {
+        ...input,
+        id: crypto.randomUUID(),
+        createdAt: Date.now()
+      }
+      await saveAnnotation(annotation)
+      setAnnotations((prev) => [...prev, annotation].sort(byPageThenTime))
+      record({ type: 'add', annotation })
+    },
+    [record]
+  )
+
   const removeAnnotation = useCallback(
     async (id: string) => {
       const target = annotations.find((annotation) => annotation.id === id)
@@ -98,6 +134,19 @@ export function useAnnotations(docId: string | undefined) {
     [annotations]
   )
 
+  const updateTextAnnotation = useCallback(
+    async (id: string, text: string) => {
+      const target = annotations.find((a) => a.id === id)
+      if (!target || target.kind !== 'text') return
+      const updated: TextAnnotation = { ...(target as TextAnnotation), text }
+      await saveAnnotation(updated)
+      setAnnotations((prev) =>
+        prev.map((annotation) => (annotation.id === id ? updated : annotation))
+      )
+    },
+    [annotations]
+  )
+
   /** Undo the most recent add or delete by applying its inverse. */
   const undo = useCallback(async () => {
     const entry = historyRef.current[historyRef.current.length - 1]
@@ -119,6 +168,9 @@ export function useAnnotations(docId: string | undefined) {
     loading,
     addHighlight,
     addNote,
+    addDraw,
+    addText,
+    updateTextAnnotation,
     removeAnnotation,
     moveAnnotation,
     undo,

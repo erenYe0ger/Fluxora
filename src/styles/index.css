@@ -254,8 +254,43 @@ body {
 [data-tool='highlight'] .textLayer,
 [data-tool='highlight'] .textLayer *,
 [data-tool='note'] .textLayer,
-[data-tool='note'] .textLayer * {
+[data-tool='note'] .textLayer *,
+[data-tool='draw'] .textLayer,
+[data-tool='draw'] .textLayer *,
+[data-tool='text'] .textLayer,
+[data-tool='text'] .textLayer * {
   cursor: inherit;
+}
+
+/* Thickness slider styling */
+input[type='range'].vertical-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 4px;
+  height: 80px;
+  background: var(--line);
+  border-radius: 9999px;
+  outline: none;
+}
+
+input[type='range'].vertical-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--surface);
+}
+
+input[type='range'].vertical-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--surface);
 }
 
 /* The find field brings its own clear button; the native one would show a second "x". */
