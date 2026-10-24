@@ -15,6 +15,8 @@ type Props = {
   onDelete: (id: string) => void
   onMove: (id: string, x: number, y: number) => void
   onEditText: (id: string, text: string) => void
+  /** Double-clicking a text annotation opens the text settings in the right bar. */
+  onOpenTextSettings: () => void
 }
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
@@ -26,7 +28,14 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
  * on the layer underneath. Pins drag in select mode only, so the note tool keeps
  * placing new notes instead of grabbing the ones already on the page.
  */
-export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditText }: Props) {
+export function AnnotationLayer({
+  annotations,
+  tool,
+  onDelete,
+  onMove,
+  onEditText,
+  onOpenTextSettings
+}: Props) {
   const [openNote, setOpenNote] = useState<string | null>(null)
   const [drag, setDrag] = useState<{ id: string; x: number; y: number } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -134,9 +143,8 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditTex
 
         if (annotation.kind === 'draw') {
           const drawAnnotation = annotation as DrawAnnotation
-          // thickness is in screen-pixel units; viewBox is 0-1 so scale down accordingly
-          const sw = (drawAnnotation.thickness ?? 3) * 0.004
-          console.log('[AnnotationLayer] draw annotation:', drawAnnotation.id, 'paths:', drawAnnotation.paths?.length, 'color:', drawAnnotation.color, 'sw:', sw)
+          // thickness is already normalised to the 0-1 viewBox (stored as px / pageWidth at draw time)
+          const sw = drawAnnotation.thickness ?? 0.004
           return (
             <svg
               key={annotation.id}
@@ -163,10 +171,26 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditTex
         if (annotation.kind === 'text') {
           const textAnnotation = annotation as TextAnnotation
           const isEditing = editingId === annotation.id
-          const interactive = tool === 'select'
+          // Clickable in select mode and while the text tool is open, so the editor can
+          // still be reached after a double-click switched the tool to text.
+          const interactive = tool === 'select' || tool === 'text'
+          // fontSize is stored normalised (fraction of page height); multiply by container height
+          // so the text renders at the correct size at any zoom level.
+          const rootH = rootRef.current?.getBoundingClientRect().height ?? 1
+          const renderedFontSize = textAnnotation.fontSize * rootH
+          const fontStyle = {
+            color: textAnnotation.color,
+            fontFamily: textAnnotation.fontFamily,
+            fontSize: renderedFontSize,
+            fontWeight: textAnnotation.bold ? 'bold' : 'normal',
+            fontStyle: textAnnotation.italic ? 'italic' : 'normal',
+            textDecoration: textAnnotation.underline ? 'underline' : 'none',
+            lineHeight: 1.2
+          }
           return (
             <div
               key={annotation.id}
+              data-text-annotation={annotation.id}
               className={`absolute group${interactive ? ' pointer-events-auto' : ''}`}
               style={{
                 left: `${textAnnotation.x * 100}%`,
@@ -183,28 +207,18 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditTex
                     onEditText(annotation.id, editValue.trim() || editValue)
                     setEditingId(null)
                   }}
-                  className="rounded border border-accent bg-surface px-1.5 py-0.5 text-xs outline-none focus:ring-2 focus:ring-accent/40"
-                  style={{
-                    color: textAnnotation.color,
-                    fontFamily: textAnnotation.fontFamily,
-                    fontSize: `${textAnnotation.fontSize}px`,
-                    fontWeight: textAnnotation.bold ? 'bold' : 'normal',
-                    fontStyle: textAnnotation.italic ? 'italic' : 'normal',
-                    textDecoration: textAnnotation.underline ? 'underline' : 'none'
-                  }}
+                  className="min-w-[4ch] border-0 bg-transparent outline-none ring-1 ring-accent/60 rounded px-0.5"
+                  style={fontStyle}
                 />
               ) : (
                 <span
-                  onDoubleClick={() => setEditingId(annotation.id)}
-                  className="cursor-text whitespace-pre-wrap"
-                  style={{
-                    color: textAnnotation.color,
-                    fontFamily: textAnnotation.fontFamily,
-                    fontSize: `${textAnnotation.fontSize}px`,
-                    fontWeight: textAnnotation.bold ? 'bold' : 'normal',
-                    fontStyle: textAnnotation.italic ? 'italic' : 'normal',
-                    textDecoration: textAnnotation.underline ? 'underline' : 'none'
+                  onDoubleClick={() => {
+                    setEditingId(annotation.id)
+                    // Double-click also opens the text settings panel in the right bar.
+                    onOpenTextSettings()
                   }}
+                  className="cursor-text whitespace-pre-wrap"
+                  style={fontStyle}
                 >
                   {textAnnotation.text}
                 </span>
@@ -238,7 +252,7 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditTex
           <div
             key={annotation.id}
             data-note-root={annotation.id}
-            className="animate-pop absolute"
+            className={`animate-pop absolute${tool === 'select' ? ' pointer-events-auto' : ''}`}
             style={{ left: `${position.x * 100}%`, top: `${position.y * 100}%` }}
           >
             <button

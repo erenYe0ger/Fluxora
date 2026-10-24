@@ -12,7 +12,7 @@ import { useReaderLayout } from '../hooks/useReaderLayout'
 import { useReaderShortcuts } from '../hooks/useReaderShortcuts'
 import { AnnotationsPanel, useAnnotations } from '@features/annotations'
 import { useDocumentSearch } from '@features/search'
-import { useSettingsStore } from '@features/settings'
+import { DEFAULT_TEXT_FONT_FAMILY, useSettingsStore } from '@features/settings'
 import { Button } from '@shared/ui/Button'
 import { EmptyState } from '@shared/ui/EmptyState'
 import { FileTextIcon } from '@shared/ui/icons'
@@ -43,13 +43,11 @@ export function ReaderPage() {
   const setDrawColor = useSettingsStore((state) => state.setDrawColor)
   const setDrawThickness = useSettingsStore((state) => state.setDrawThickness)
   const textColor = useSettingsStore((state) => state.textColor)
-  const textFontFamily = useSettingsStore((state) => state.textFontFamily)
   const textFontSize = useSettingsStore((state) => state.textFontSize)
   const textBold = useSettingsStore((state) => state.textBold)
   const textItalic = useSettingsStore((state) => state.textItalic)
   const textUnderline = useSettingsStore((state) => state.textUnderline)
   const setTextColor = useSettingsStore((state) => state.setTextColor)
-  const setTextFontFamily = useSettingsStore((state) => state.setTextFontFamily)
   const setTextFontSize = useSettingsStore((state) => state.setTextFontSize)
   const setTextBold = useSettingsStore((state) => state.setTextBold)
   const setTextItalic = useSettingsStore((state) => state.setTextItalic)
@@ -188,7 +186,7 @@ export function ReaderPage() {
                   drawColor={drawColor}
                   drawThickness={drawThickness}
                   textColor={textColor}
-                  textFontFamily={textFontFamily}
+                  textFontFamily={DEFAULT_TEXT_FONT_FAMILY}
                   textFontSize={textFontSize}
                   textBold={textBold}
                   textItalic={textItalic}
@@ -246,13 +244,11 @@ export function ReaderPage() {
           drawColor={drawColor}
           drawThickness={drawThickness}
           onTextColorChange={setTextColor}
-          onTextFontFamilyChange={setTextFontFamily}
           onTextFontSizeChange={setTextFontSize}
           onTextBoldChange={setTextBold}
           onTextItalicChange={setTextItalic}
           onTextUnderlineChange={setTextUnderline}
           textColor={textColor}
-          textFontFamily={textFontFamily}
           textFontSize={textFontSize}
           textBold={textBold}
           textItalic={textItalic}

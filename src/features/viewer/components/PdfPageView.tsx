@@ -143,14 +143,15 @@ export function PdfPageView({
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const drawing = drawingRef.current
       if (drawing.isDrawing && drawing.path.length > 0) {
+        const bounds = wrapperRef.current!.getBoundingClientRect()
+        const w = bounds.width
+        const h = bounds.height
         ctx.strokeStyle = drawing.color
+        // Live preview: thickness is in CSS pixels (slider 1–20 = 1–20 px).
         ctx.lineWidth = drawing.thickness
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
         ctx.beginPath()
-        const bounds = wrapperRef.current!.getBoundingClientRect()
-        const w = bounds.width
-        const h = bounds.height
         drawing.path.forEach((point, index) => {
           const px = point.x * w
           const py = point.y * h
@@ -235,6 +236,9 @@ export function PdfPageView({
     }
 
     if (currentTool === 'text') {
+      // Prevent draft if user clicked on an existing text annotation
+      const target = event.target as Element
+      if (target.closest('[data-text-annotation]')) return
       setDraftText({
         x: (event.clientX - pageBox.left) / pageBox.width,
         y: (event.clientY - pageBox.top) / pageBox.height,
@@ -280,7 +284,10 @@ export function PdfPageView({
             .slice(1)
             .map((point) => `L ${point.x} ${point.y}`)
             .join(' ')
-        onDraw({ paths: [d], color: drawing.color, thickness: drawing.thickness })
+        // Normalise thickness to the 0-1 viewBox: divide raw CSS-pixel value by page width
+        // so the SVG strokeWidth renders at the same pixel size as the live canvas preview.
+        const normalisedThickness = drawing.thickness / (wrapperRef.current?.getBoundingClientRect().width ?? 1)
+        onDraw({ paths: [d], color: drawing.color, thickness: normalisedThickness })
       }
       drawing.path = []
 
@@ -341,6 +348,7 @@ export function PdfPageView({
             onDelete={onDeleteAnnotation}
             onMove={onMoveAnnotation}
             onEditText={onEditText}
+            onOpenTextSettings={() => useViewerStore.getState().setTool('text')}
           />
 
           {searchRects.map((rects, index) =>
@@ -412,81 +420,52 @@ export function PdfPageView({
       )}
 
       {draftText && (
-        <div
-          className="animate-pop absolute z-30 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
+        // Inline text input placed directly on the page at the click position.
+        // Styled identically to the saved TextAnnotation so it looks WYSIWYG.
+        <input
+          key={`draft-${draftText.x}-${draftText.y}`}
+          autoFocus
+          type="text"
+          placeholder="Type and press Enter"
+          className="absolute z-30 min-w-[4ch] max-w-full border-0 bg-transparent outline-none ring-1 ring-accent/60 rounded px-0.5"
           style={{
-            left: Math.min(draftText.x * viewport.width, viewport.width - 200),
-            top: Math.min(draftText.y * viewport.height, viewport.height - 100),
-            minWidth: 150
+            left: `${draftText.x * 100}%`,
+            top: `${draftText.y * 100}%`,
+            fontFamily: textFontFamily,
+            fontSize: textFontSize,
+            fontWeight: textBold ? 'bold' : 'normal',
+            fontStyle: textItalic ? 'italic' : 'normal',
+            textDecoration: textUnderline ? 'underline' : 'none',
+            color: textColor,
+            lineHeight: 1.2
           }}
+          value={draftText.text}
+          onChange={(event) => setDraftText({ ...draftText, text: event.target.value })}
           onClick={(event) => event.stopPropagation()}
-        >
-          <input
-            autoFocus
-            type="text"
-            placeholder="Type text…"
-            className="w-full rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
-            value={draftText.text}
-            onChange={(event) => setDraftText({ ...draftText, text: event.target.value })}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setDraftText(null)
-              if (event.key === 'Enter') {
-                if (draftText.text.trim()) {
-                  onText({
-                    x: draftText.x,
-                    y: draftText.y,
-                    text: draftText.text.trim(),
-                    color: textColor,
-                    fontFamily: textFontFamily,
-                    fontSize: textFontSize,
-                    bold: textBold,
-                    italic: textItalic,
-                    underline: textUnderline
-                  })
-                }
-                setDraftText(null)
-              }
-            }}
-            style={{
-              fontFamily: textFontFamily,
-              fontSize: textFontSize,
-              fontWeight: textBold ? 'bold' : 'normal',
-              fontStyle: textItalic ? 'italic' : 'normal',
-              textDecoration: textUnderline ? 'underline' : 'none',
-              color: textColor
-            }}
-          />
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              className="rounded-md px-2 py-1 text-danger transition hover:bg-danger-soft"
-              onClick={() => setDraftText(null)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="rounded-md bg-accent px-2.5 py-1 font-medium text-accent-ink transition hover:brightness-110 disabled:opacity-45"
-              disabled={!draftText.text.trim()}
-              onClick={() => {
-                onText({
-                  x: draftText.x,
-                  y: draftText.y,
-                  text: draftText.text.trim(),
-                  color: textColor,
-                  fontFamily: textFontFamily,
-                  fontSize: textFontSize,
-                  bold: textBold,
-                  italic: textItalic,
-                  underline: textUnderline
-                })
-                setDraftText(null)
-              }}
-            >
-              Add text
-            </button>
-          </div>
-        </div>
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setDraftText(null)
+              return
+            }
+            if (event.key === 'Enter' && draftText.text.trim()) {
+              const pageH = wrapperRef.current?.getBoundingClientRect().height ?? 1
+              onText({
+                x: draftText.x,
+                y: draftText.y,
+                text: draftText.text.trim(),
+                color: textColor,
+                fontFamily: textFontFamily,
+                // Normalise by page height so text scales correctly with zoom
+                fontSize: textFontSize / pageH,
+                bold: textBold,
+                italic: textItalic,
+                underline: textUnderline
+              })
+              setDraftText(null)
+            }
+          }}
+          onBlur={() => setDraftText(null)}
+        />
       )}
     </div>
   )

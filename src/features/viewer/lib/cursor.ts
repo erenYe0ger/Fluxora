@@ -35,7 +35,7 @@ export function pencilCursor(color: string): string {
     `<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" fill="${color}" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/>` +
     `<path d="m15 5 4 4" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>` +
     `</svg>`
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 17 3, crosshair`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 2 22, crosshair`
 }
 
 /** Text cursor: serif "T" glyph matching TextIcon. Horizontal bar is clearly wide. */

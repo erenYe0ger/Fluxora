@@ -20,9 +20,17 @@ function renderLayer() {
   const onDelete = vi.fn()
   const onMove = vi.fn()
   const onEditText = vi.fn()
+  const onOpenTextSettings = vi.fn()
   render(
     <div style={{ position: 'relative', width: 400, height: 600 }}>
-      <AnnotationLayer annotations={[NOTE]} tool="select" onDelete={onDelete} onMove={onMove} onEditText={onEditText} />
+      <AnnotationLayer
+        annotations={[NOTE]}
+        tool="select"
+        onDelete={onDelete}
+        onMove={onMove}
+        onEditText={onEditText}
+        onOpenTextSettings={onOpenTextSettings}
+      />
       <button type="button">somewhere else</button>
     </div>
   )

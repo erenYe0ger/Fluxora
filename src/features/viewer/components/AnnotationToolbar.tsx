@@ -23,13 +23,11 @@ type Props = {
   drawColor: string
   drawThickness: number
   onTextColorChange: (color: string) => void
-  onTextFontFamilyChange: (fontFamily: string) => void
   onTextFontSizeChange: (fontSize: number) => void
   onTextBoldChange: (bold: boolean) => void
   onTextItalicChange: (italic: boolean) => void
   onTextUnderlineChange: (underline: boolean) => void
   textColor: string
-  textFontFamily: string
   textFontSize: number
   textBold: boolean
   textItalic: boolean
@@ -44,21 +42,17 @@ const TOOLS: { id: Tool; label: string; hint: string; icon: ReactNode }[] = [
   { id: 'text', label: 'Text', hint: 'Add text (T)', icon: <TextIcon /> }
 ]
 
-const FONT_CYCLE = ['Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana']
-
 export function AnnotationToolbar({
   onDrawColorChange,
   onDrawThicknessChange,
   drawColor,
   drawThickness,
   onTextColorChange,
-  onTextFontFamilyChange,
   onTextFontSizeChange,
   onTextBoldChange,
   onTextItalicChange,
   onTextUnderlineChange,
   textColor,
-  textFontFamily,
   textFontSize,
   textBold,
   textItalic,
@@ -218,24 +212,6 @@ export function AnnotationToolbar({
                     onChange={onTextColorChange}
                     onCustomColor={setCustomTextColor}
                   />
-                  {/* Font family — cycling button */}
-                  <div className="flex flex-col gap-1">
-                    <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Font</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const idx = FONT_CYCLE.findIndex((f) =>
-                          textFontFamily.startsWith(f)
-                        )
-                        onTextFontFamilyChange(FONT_CYCLE[(idx + 1) % FONT_CYCLE.length])
-                      }}
-                      title={textFontFamily}
-                      className="w-full rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-center text-xs text-muted transition hover:border-line-strong hover:text-ink"
-                      style={{ fontFamily: textFontFamily }}
-                    >
-                      Aa — {textFontFamily.split(',')[0]}
-                    </button>
-                  </div>
                   {/* Font size */}
                   <div className="flex flex-col gap-1">
                     <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Size</p>
