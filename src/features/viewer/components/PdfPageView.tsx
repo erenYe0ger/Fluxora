@@ -273,12 +273,14 @@ export function PdfPageView({
       setForceRender((n) => n + 1)
 
       if (drawing.path.length > 1) {
-        // Convert path points to SVG path strings
-        const paths = [`M ${drawing.path[0].x} ${drawing.path[0].y}`]
-        drawing.path.slice(1).forEach((point) => {
-          paths.push(`L ${point.x} ${point.y}`)
-        })
-        onDraw({ paths, color: drawing.color, thickness: drawing.thickness })
+        // Build one complete SVG path string: "M x0 y0 L x1 y1 L x2 y2 …"
+        const d =
+          `M ${drawing.path[0].x} ${drawing.path[0].y} ` +
+          drawing.path
+            .slice(1)
+            .map((point) => `L ${point.x} ${point.y}`)
+            .join(' ')
+        onDraw({ paths: [d], color: drawing.color, thickness: drawing.thickness })
       }
       drawing.path = []
 

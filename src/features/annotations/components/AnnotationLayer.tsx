@@ -134,8 +134,9 @@ export function AnnotationLayer({ annotations, tool, onDelete, onMove, onEditTex
 
         if (annotation.kind === 'draw') {
           const drawAnnotation = annotation as DrawAnnotation
-          // viewBox="0 0 1 1" so strokeWidth 0.004 = ~3px on a 720px page (good default)
+          // thickness is in screen-pixel units; viewBox is 0-1 so scale down accordingly
           const sw = (drawAnnotation.thickness ?? 3) * 0.004
+          console.log('[AnnotationLayer] draw annotation:', drawAnnotation.id, 'paths:', drawAnnotation.paths?.length, 'color:', drawAnnotation.color, 'sw:', sw)
           return (
             <svg
               key={annotation.id}
