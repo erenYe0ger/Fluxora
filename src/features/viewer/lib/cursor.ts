@@ -35,15 +35,10 @@ export function pencilCursor(color: string): string {
     `<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" fill="${color}" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/>` +
     `<path d="m15 5 4 4" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>` +
     `</svg>`
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 17 3, crosshair`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 2 22, crosshair`
 }
 
-/** Text cursor: serif "T" glyph matching TextIcon. Horizontal bar is clearly wide. */
+/** Standard I-beam cursor shown in text contexts. */
 export function textCursor(): string {
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32">` +
-    `<path d="M4 4h20" stroke="#0a0c11" stroke-width="3" stroke-linecap="round"/>` +
-    `<path d="M14 4v24" stroke="#0a0c11" stroke-width="3" stroke-linecap="round"/>` +
-    `</svg>`
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 14 4, text`
+  return 'text'
 }

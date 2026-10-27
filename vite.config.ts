@@ -18,13 +18,16 @@ export default defineConfig({
     format: 'es'
   },
   build: {
+    target: 'esnext',
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       output: {
-        // pdf.js is large and only needed inside the reader; keep it in its own chunk
-        // so the library screen stays light.
+        // Keep large PDF processing libraries in dedicated chunks so they stay light
         manualChunks(id: string) {
           if (id.includes('pdfjs-dist')) return 'pdfjs'
+          if (id.includes('@pdf-lib/standard-fonts')) return 'pdf-fonts'
+          if (id.includes('@pdf-lib/upng')) return 'pdf-upng'
+          if (id.includes('pdf-lib')) return 'pdf-lib'
           return undefined
         }
       }

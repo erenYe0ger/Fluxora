@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+﻿import { useRef, useState, useEffect } from 'react'
 import type { MouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import type { PDFPageProxy } from 'pdfjs-dist'
 import { usePageRender } from '../hooks/usePageRender'
@@ -8,9 +8,11 @@ import { markerCursor, selectCursor, pencilCursor, textCursor } from '../lib/cur
 import { useInView } from '@shared/hooks/useInView'
 import { useViewerStore } from '../store/viewerStore'
 import type { Tool } from '../store/viewerStore'
-import type { Annotation, Rect } from '@features/annotations'
+import type { Annotation, Rect, TextAnnotationPatch } from '@features/annotations'
 import { clampRect, normalizeRect, toCssBox } from '@features/annotations'
 import { AnnotationLayer } from '@features/annotations'
+import { DRAW_PRESETS, useSettingsStore } from '@features/settings'
+import { ColorPicker } from './ColorPicker'
 
 type Props = {
   page: PDFPageProxy
@@ -48,12 +50,14 @@ type Props = {
   }) => void
   onDeleteAnnotation: (id: string) => void
   onMoveAnnotation: (id: string, x: number, y: number) => void
-  onEditText: (id: string, text: string) => void
+  onUpdateText: (id: string, patch: TextAnnotationPatch) => void
 }
 
 /** Composer size in px; used to keep the box inside the page near the right/bottom edge. */
 const NOTE_BOX_WIDTH = 240
 const NOTE_BOX_HEIGHT = 152
+const TEXT_BOX_WIDTH = 264
+const TEXT_BOX_HEIGHT = 280
 const EDGE_MARGIN = 8
 
 const DOUBLE_CLICK_MS = 350
@@ -85,13 +89,16 @@ export function PdfPageView({
   onText,
   onDeleteAnnotation,
   onMoveAnnotation,
-  onEditText
+  onUpdateText
 }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const textLayerRef = useRef<HTMLDivElement>(null)
   const drawCanvasRef = useRef<HTMLCanvasElement>(null)
   const inView = useInView(wrapperRef)
+
+  const customTextColor = useSettingsStore((state) => state.customTextColor)
+  const setCustomTextColor = useSettingsStore((state) => state.setCustomTextColor)
 
   // Use refs for drawing state to avoid closure issues
   const drawingRef = useRef<{
@@ -119,6 +126,12 @@ export function PdfPageView({
     x: number
     y: number
     text: string
+    color: string
+    fontFamily: string
+    fontSize: number
+    bold: boolean
+    italic: boolean
+    underline: boolean
   } | null>(null)
   const [, setForceRender] = useState(0)
 
@@ -143,14 +156,15 @@ export function PdfPageView({
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       const drawing = drawingRef.current
       if (drawing.isDrawing && drawing.path.length > 0) {
+        const bounds = wrapperRef.current!.getBoundingClientRect()
+        const w = bounds.width
+        const h = bounds.height
         ctx.strokeStyle = drawing.color
+        // Live preview: thickness is in CSS pixels (slider 1–20 = 1–20 px).
         ctx.lineWidth = drawing.thickness
         ctx.lineCap = 'round'
         ctx.lineJoin = 'round'
         ctx.beginPath()
-        const bounds = wrapperRef.current!.getBoundingClientRect()
-        const w = bounds.width
-        const h = bounds.height
         drawing.path.forEach((point, index) => {
           const px = point.x * w
           const py = point.y * h
@@ -235,10 +249,26 @@ export function PdfPageView({
     }
 
     if (currentTool === 'text') {
+      // Prevent draft if user clicked on an existing text annotation
+      const target = event.target as Element
+      if (target.closest('[data-text-annotation]') || target.closest('[data-text-popover]') || target.closest('[data-color-picker-portal]')) return
+      const rawX = (event.clientX - pageBox.left) / pageBox.width
+      const rawY = (event.clientY - pageBox.top) / pageBox.height
+
+      // Clamp coordinates so text placed near the rightmost edge doesn't spill outside the page
+      const clampedX = Math.max(0.02, Math.min(0.72, rawX))
+      const clampedY = Math.max(0.02, Math.min(0.92, rawY))
+
       setDraftText({
-        x: (event.clientX - pageBox.left) / pageBox.width,
-        y: (event.clientY - pageBox.top) / pageBox.height,
-        text: ''
+        x: clampedX,
+        y: clampedY,
+        text: '',
+        color: textColor,
+        fontFamily: textFontFamily,
+        fontSize: textFontSize,
+        bold: textBold,
+        italic: textItalic,
+        underline: textUnderline
       })
     }
   }
@@ -280,7 +310,10 @@ export function PdfPageView({
             .slice(1)
             .map((point) => `L ${point.x} ${point.y}`)
             .join(' ')
-        onDraw({ paths: [d], color: drawing.color, thickness: drawing.thickness })
+        // Normalise thickness to the 0-1 viewBox: divide raw CSS-pixel value by page width
+        // so the SVG strokeWidth renders at the same pixel size as the live canvas preview.
+        const normalisedThickness = drawing.thickness / (wrapperRef.current?.getBoundingClientRect().width ?? 1)
+        onDraw({ paths: [d], color: drawing.color, thickness: normalisedThickness })
       }
       drawing.path = []
 
@@ -302,6 +335,18 @@ export function PdfPageView({
       left: Math.min(Math.max(draftNote.x * viewport.width, EDGE_MARGIN), maxLeft),
       top: Math.min(Math.max(draftNote.y * viewport.height, EDGE_MARGIN), maxTop),
       width: Math.min(NOTE_BOX_WIDTH, viewport.width - EDGE_MARGIN * 2)
+    }
+  })()
+
+  // Same clamping for the text composer card
+  const textComposerPosition = (() => {
+    if (!draftText) return null
+    const maxLeft = Math.max(EDGE_MARGIN, viewport.width - TEXT_BOX_WIDTH - EDGE_MARGIN)
+    const maxTop = Math.max(EDGE_MARGIN, viewport.height - TEXT_BOX_HEIGHT - EDGE_MARGIN)
+    return {
+      left: Math.min(Math.max(draftText.x * viewport.width, EDGE_MARGIN), maxLeft),
+      top: Math.min(Math.max(draftText.y * viewport.height, EDGE_MARGIN), maxTop),
+      width: Math.min(TEXT_BOX_WIDTH, viewport.width - EDGE_MARGIN * 2)
     }
   })()
 
@@ -340,7 +385,7 @@ export function PdfPageView({
             tool={tool}
             onDelete={onDeleteAnnotation}
             onMove={onMoveAnnotation}
-            onEditText={onEditText}
+            onUpdateText={onUpdateText}
           />
 
           {searchRects.map((rects, index) =>
@@ -411,52 +456,129 @@ export function PdfPageView({
         </div>
       )}
 
-      {draftText && (
+      {/* ── Text composer: note-style card with inline style controls ────── */}
+      {draftText && textComposerPosition && (
         <div
-          className="animate-pop absolute z-30 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
-          style={{
-            left: Math.min(draftText.x * viewport.width, viewport.width - 200),
-            top: Math.min(draftText.y * viewport.height, viewport.height - 100),
-            minWidth: 150
-          }}
+          className="animate-pop absolute z-30 w-64 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
+          style={{ left: textComposerPosition.left, top: textComposerPosition.top, width: textComposerPosition.width }}
           onClick={(event) => event.stopPropagation()}
         >
-          <input
+          {/* Plain unstyled while typing so it never shows bold/underline */}
+          <textarea
             autoFocus
-            type="text"
+            rows={3}
             placeholder="Type text…"
-            className="w-full rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
+            className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 font-normal text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
+            style={{
+              fontFamily: draftText.fontFamily,
+              fontWeight: 'normal',
+              fontStyle: 'normal',
+              textDecoration: 'none'
+            }}
             value={draftText.text}
             onChange={(event) => setDraftText({ ...draftText, text: event.target.value })}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') setDraftText(null)
-              if (event.key === 'Enter') {
-                if (draftText.text.trim()) {
-                  onText({
-                    x: draftText.x,
-                    y: draftText.y,
-                    text: draftText.text.trim(),
-                    color: textColor,
-                    fontFamily: textFontFamily,
-                    fontSize: textFontSize,
-                    bold: textBold,
-                    italic: textItalic,
-                    underline: textUnderline
-                  })
-                }
+              if (event.key === 'Escape') {
                 setDraftText(null)
               }
-            }}
-            style={{
-              fontFamily: textFontFamily,
-              fontSize: textFontSize,
-              fontWeight: textBold ? 'bold' : 'normal',
-              fontStyle: textItalic ? 'italic' : 'normal',
-              textDecoration: textUnderline ? 'underline' : 'none',
-              color: textColor
+              // Enter creates a new line in the text naturally; no auto-submit
             }}
           />
-          <div className="mt-2 flex justify-end gap-2">
+
+          {/* Colour swatches + custom color picker */}
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Colour</p>
+            <ColorPicker
+              label="Text"
+              presets={DRAW_PRESETS}
+              value={draftText.color}
+              customColor={customTextColor}
+              onChange={(color) => setDraftText({ ...draftText, color })}
+              onCustomColor={(color) => {
+                setCustomTextColor(color)
+                setDraftText({ ...draftText, color })
+              }}
+            />
+          </div>
+
+          {/* Font size */}
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Size</p>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() =>
+                  setDraftText({ ...draftText, fontSize: Math.max(8, draftText.fontSize - 2) })
+                }
+                className="flex h-6 w-6 items-center justify-center rounded-lg border border-line bg-surface-2 text-sm font-medium text-muted transition hover:border-line-strong hover:text-ink"
+                aria-label="Decrease size"
+              >
+                −
+              </button>
+              <span className="flex-1 text-center text-xs font-medium tabular-nums text-ink">
+                {draftText.fontSize}px
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setDraftText({ ...draftText, fontSize: Math.min(72, draftText.fontSize + 2) })
+                }
+                className="flex h-6 w-6 items-center justify-center rounded-lg border border-line bg-surface-2 text-sm font-medium text-muted transition hover:border-line-strong hover:text-ink"
+                aria-label="Increase size"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Style toggles */}
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Style</p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setDraftText({ ...draftText, bold: !draftText.bold })}
+                aria-pressed={draftText.bold}
+                aria-label="Bold"
+                className={`flex h-7 flex-1 items-center justify-center rounded-lg border text-sm font-bold transition-all ${
+                  draftText.bold
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line text-muted hover:border-line-strong hover:text-ink'
+                }`}
+              >
+                B
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraftText({ ...draftText, italic: !draftText.italic })}
+                aria-pressed={draftText.italic}
+                aria-label="Italic"
+                className={`flex h-7 flex-1 items-center justify-center rounded-lg border text-sm italic transition-all ${
+                  draftText.italic
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line text-muted hover:border-line-strong hover:text-ink'
+                }`}
+              >
+                I
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraftText({ ...draftText, underline: !draftText.underline })}
+                aria-pressed={draftText.underline}
+                aria-label="Underline"
+                className={`flex h-7 flex-1 items-center justify-center rounded-lg border text-sm underline transition-all ${
+                  draftText.underline
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line text-muted hover:border-line-strong hover:text-ink'
+                }`}
+              >
+                U
+              </button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-2.5 flex justify-end gap-2 border-t border-line pt-2">
             <button
               type="button"
               className="rounded-md px-2 py-1 text-danger transition hover:bg-danger-soft"
@@ -469,16 +591,17 @@ export function PdfPageView({
               className="rounded-md bg-accent px-2.5 py-1 font-medium text-accent-ink transition hover:brightness-110 disabled:opacity-45"
               disabled={!draftText.text.trim()}
               onClick={() => {
+                const pageH = wrapperRef.current?.getBoundingClientRect().height ?? 1
                 onText({
                   x: draftText.x,
                   y: draftText.y,
                   text: draftText.text.trim(),
-                  color: textColor,
-                  fontFamily: textFontFamily,
-                  fontSize: textFontSize,
-                  bold: textBold,
-                  italic: textItalic,
-                  underline: textUnderline
+                  color: draftText.color,
+                  fontFamily: draftText.fontFamily,
+                  fontSize: draftText.fontSize / pageH,
+                  bold: draftText.bold,
+                  italic: draftText.italic,
+                  underline: draftText.underline
                 })
                 setDraftText(null)
               }}

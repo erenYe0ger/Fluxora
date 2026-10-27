@@ -50,7 +50,7 @@ export const DEFAULT_DRAW_COLOR = DRAW_PRESETS[0].value
 export const DEFAULT_DRAW_THICKNESS = 3
 export const DEFAULT_TEXT_COLOR = DRAW_PRESETS[0].value
 export const DEFAULT_TEXT_FONT_FAMILY = TEXT_FONTS[0].value
-export const DEFAULT_TEXT_FONT_SIZE = 16
+export const DEFAULT_TEXT_FONT_SIZE = 18
 
 type SettingsState = {
   theme: Theme
@@ -143,7 +143,14 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'fluxora:settings',
-      version: 4,
+      version: 5,
+      migrate: (persistedState, version) => {
+        const state = (persistedState || {}) as Record<string, unknown>
+        if (version < 5 && state.textFontSize === 16) {
+          state.textFontSize = 18
+        }
+        return state
+      },
       partialize: (state) => ({
         theme: state.theme,
         highlightColor: state.highlightColor,

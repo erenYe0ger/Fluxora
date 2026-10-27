@@ -6,6 +6,7 @@ export {
   DRAW_PRESETS,
   DEFAULT_HIGHLIGHT_COLOR,
   DEFAULT_NOTE_COLOR,
+  DEFAULT_TEXT_FONT_FAMILY,
   useSettingsStore
 } from './store'
 export type { Theme, HighlightPreset } from './store'

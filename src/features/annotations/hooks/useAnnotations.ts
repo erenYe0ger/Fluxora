@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   Annotation,
   HighlightAnnotation,
@@ -12,6 +12,11 @@ type NewHighlight = Omit<HighlightAnnotation, 'id' | 'createdAt'>
 type NewNote = Omit<NoteAnnotation, 'id' | 'createdAt'>
 type NewDraw = Omit<DrawAnnotation, 'id' | 'createdAt'>
 type NewText = Omit<TextAnnotation, 'id' | 'createdAt'>
+
+/** Fields on a text annotation that the popover can patch after creation. */
+export type TextAnnotationPatch = Partial<
+  Pick<TextAnnotation, 'text' | 'color' | 'fontSize' | 'fontFamily' | 'bold' | 'italic' | 'underline'>
+>
 
 /** Inverse operation we can replay when the user presses Ctrl+Z. */
 type HistoryEntry = { type: 'add' | 'delete'; annotation: Annotation }
@@ -120,12 +125,12 @@ export function useAnnotations(docId: string | undefined) {
   const moveAnnotation = useCallback(
     async (id: string, x: number, y: number) => {
       const target = annotations.find((annotation) => annotation.id === id)
-      if (!target || target.kind !== 'note') return
-      const moved: NoteAnnotation = {
+      if (!target || (target.kind !== 'note' && target.kind !== 'text')) return
+      const moved = {
         ...target,
         x: Math.min(1, Math.max(0, x)),
         y: Math.min(1, Math.max(0, y))
-      }
+      } as Annotation
       await saveAnnotation(moved)
       setAnnotations((prev) =>
         prev.map((annotation) => (annotation.id === id ? moved : annotation))
@@ -134,11 +139,12 @@ export function useAnnotations(docId: string | undefined) {
     [annotations]
   )
 
+  /** Update any combination of text-annotation fields (content and/or style). */
   const updateTextAnnotation = useCallback(
-    async (id: string, text: string) => {
+    async (id: string, patch: TextAnnotationPatch) => {
       const target = annotations.find((a) => a.id === id)
       if (!target || target.kind !== 'text') return
-      const updated: TextAnnotation = { ...(target as TextAnnotation), text }
+      const updated: TextAnnotation = { ...(target as TextAnnotation), ...patch }
       await saveAnnotation(updated)
       setAnnotations((prev) =>
         prev.map((annotation) => (annotation.id === id ? updated : annotation))

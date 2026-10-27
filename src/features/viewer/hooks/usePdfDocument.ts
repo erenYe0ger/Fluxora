@@ -15,7 +15,7 @@ export function usePdfDocument(data: ArrayBuffer | null) {
     setError(null)
     setDoc(null)
 
-    const task = pdfjsLib.getDocument({ data })
+    const task = pdfjsLib.getDocument({ data: data.slice(0) })
     task.promise
       .then((pdf) => {
         setDoc(pdf)
