@@ -8,9 +8,10 @@ import { markerCursor, selectCursor, pencilCursor, textCursor } from '../lib/cur
 import { useInView } from '@shared/hooks/useInView'
 import { useViewerStore } from '../store/viewerStore'
 import type { Tool } from '../store/viewerStore'
-import type { Annotation, Rect } from '@features/annotations'
+import type { Annotation, Rect, TextAnnotationPatch } from '@features/annotations'
 import { clampRect, normalizeRect, toCssBox } from '@features/annotations'
 import { AnnotationLayer } from '@features/annotations'
+import { DRAW_PRESETS } from '@features/settings'
 
 type Props = {
   page: PDFPageProxy
@@ -48,12 +49,14 @@ type Props = {
   }) => void
   onDeleteAnnotation: (id: string) => void
   onMoveAnnotation: (id: string, x: number, y: number) => void
-  onEditText: (id: string, text: string) => void
+  onUpdateText: (id: string, patch: TextAnnotationPatch) => void
 }
 
 /** Composer size in px; used to keep the box inside the page near the right/bottom edge. */
 const NOTE_BOX_WIDTH = 240
 const NOTE_BOX_HEIGHT = 152
+const TEXT_BOX_WIDTH = 248
+const TEXT_BOX_HEIGHT = 280
 const EDGE_MARGIN = 8
 
 const DOUBLE_CLICK_MS = 350
@@ -85,7 +88,7 @@ export function PdfPageView({
   onText,
   onDeleteAnnotation,
   onMoveAnnotation,
-  onEditText
+  onUpdateText
 }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -119,6 +122,12 @@ export function PdfPageView({
     x: number
     y: number
     text: string
+    color: string
+    fontFamily: string
+    fontSize: number
+    bold: boolean
+    italic: boolean
+    underline: boolean
   } | null>(null)
   const [, setForceRender] = useState(0)
 
@@ -242,7 +251,13 @@ export function PdfPageView({
       setDraftText({
         x: (event.clientX - pageBox.left) / pageBox.width,
         y: (event.clientY - pageBox.top) / pageBox.height,
-        text: ''
+        text: '',
+        color: textColor,
+        fontFamily: textFontFamily,
+        fontSize: textFontSize,
+        bold: textBold,
+        italic: textItalic,
+        underline: textUnderline
       })
     }
   }
@@ -312,6 +327,18 @@ export function PdfPageView({
     }
   })()
 
+  // Same clamping for the text composer card
+  const textComposerPosition = (() => {
+    if (!draftText) return null
+    const maxLeft = Math.max(EDGE_MARGIN, viewport.width - TEXT_BOX_WIDTH - EDGE_MARGIN)
+    const maxTop = Math.max(EDGE_MARGIN, viewport.height - TEXT_BOX_HEIGHT - EDGE_MARGIN)
+    return {
+      left: Math.min(Math.max(draftText.x * viewport.width, EDGE_MARGIN), maxLeft),
+      top: Math.min(Math.max(draftText.y * viewport.height, EDGE_MARGIN), maxTop),
+      width: Math.min(TEXT_BOX_WIDTH, viewport.width - EDGE_MARGIN * 2)
+    }
+  })()
+
   // Determine cursor based on tool
   const pageCursor = (() => {
     if (tool === 'draw') return pencilCursor(drawColor)
@@ -347,8 +374,7 @@ export function PdfPageView({
             tool={tool}
             onDelete={onDeleteAnnotation}
             onMove={onMoveAnnotation}
-            onEditText={onEditText}
-            onOpenTextSettings={() => useViewerStore.getState().setTool('text')}
+            onUpdateText={onUpdateText}
           />
 
           {searchRects.map((rects, index) =>
@@ -419,53 +445,185 @@ export function PdfPageView({
         </div>
       )}
 
-      {draftText && (
-        // Inline text input placed directly on the page at the click position.
-        // Styled identically to the saved TextAnnotation so it looks WYSIWYG.
-        <input
-          key={`draft-${draftText.x}-${draftText.y}`}
-          autoFocus
-          type="text"
-          placeholder="Type and press Enter"
-          className="absolute z-30 min-w-[4ch] max-w-full border-0 bg-transparent outline-none ring-1 ring-accent/60 rounded px-0.5"
-          style={{
-            left: `${draftText.x * 100}%`,
-            top: `${draftText.y * 100}%`,
-            fontFamily: textFontFamily,
-            fontSize: textFontSize,
-            fontWeight: textBold ? 'bold' : 'normal',
-            fontStyle: textItalic ? 'italic' : 'normal',
-            textDecoration: textUnderline ? 'underline' : 'none',
-            color: textColor,
-            lineHeight: 1.2
-          }}
-          value={draftText.text}
-          onChange={(event) => setDraftText({ ...draftText, text: event.target.value })}
+      {/* ── Text composer: note-style card with inline style controls ────── */}
+      {draftText && textComposerPosition && (
+        <div
+          className="animate-pop absolute z-30 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
+          style={{ left: textComposerPosition.left, top: textComposerPosition.top, width: textComposerPosition.width }}
           onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              setDraftText(null)
-              return
-            }
-            if (event.key === 'Enter' && draftText.text.trim()) {
-              const pageH = wrapperRef.current?.getBoundingClientRect().height ?? 1
-              onText({
-                x: draftText.x,
-                y: draftText.y,
-                text: draftText.text.trim(),
-                color: textColor,
-                fontFamily: textFontFamily,
-                // Normalise by page height so text scales correctly with zoom
-                fontSize: textFontSize / pageH,
-                bold: textBold,
-                italic: textItalic,
-                underline: textUnderline
-              })
-              setDraftText(null)
-            }
-          }}
-          onBlur={() => setDraftText(null)}
-        />
+        >
+          <textarea
+            autoFocus
+            rows={2}
+            placeholder="Type text…"
+            className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
+            style={{
+              fontFamily: draftText.fontFamily,
+              fontWeight: draftText.bold ? 'bold' : 'normal',
+              fontStyle: draftText.italic ? 'italic' : 'normal',
+              textDecoration: draftText.underline ? 'underline' : 'none',
+              color: draftText.color
+            }}
+            value={draftText.text}
+            onChange={(event) => setDraftText({ ...draftText, text: event.target.value })}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                setDraftText(null)
+                return
+              }
+              if (event.key === 'Enter' && !event.shiftKey && draftText.text.trim()) {
+                event.preventDefault()
+                const pageH = wrapperRef.current?.getBoundingClientRect().height ?? 1
+                onText({
+                  x: draftText.x,
+                  y: draftText.y,
+                  text: draftText.text.trim(),
+                  color: draftText.color,
+                  fontFamily: draftText.fontFamily,
+                  // Normalise by page height so text scales correctly with zoom
+                  fontSize: draftText.fontSize / pageH,
+                  bold: draftText.bold,
+                  italic: draftText.italic,
+                  underline: draftText.underline
+                })
+                setDraftText(null)
+              }
+            }}
+          />
+
+          {/* Colour swatches */}
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Colour</p>
+            <div className="flex items-center gap-1.5">
+              {DRAW_PRESETS.map((preset) => {
+                const active = preset.value.toLowerCase() === draftText.color.toLowerCase()
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => setDraftText({ ...draftText, color: preset.value })}
+                    aria-label={preset.name}
+                    aria-pressed={active}
+                    title={preset.name}
+                    className={`h-5 w-5 rounded-full border border-black/10 transition duration-150 hover:scale-110 ${
+                      active ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface' : ''
+                    }`}
+                    style={{ backgroundColor: preset.value }}
+                  />
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Font size */}
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Size</p>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() =>
+                  setDraftText({ ...draftText, fontSize: Math.max(8, draftText.fontSize - 2) })
+                }
+                className="flex h-6 w-6 items-center justify-center rounded-lg border border-line bg-surface-2 text-sm font-medium text-muted transition hover:border-line-strong hover:text-ink"
+                aria-label="Decrease size"
+              >
+                −
+              </button>
+              <span className="flex-1 text-center text-xs font-medium tabular-nums text-ink">
+                {draftText.fontSize}px
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setDraftText({ ...draftText, fontSize: Math.min(72, draftText.fontSize + 2) })
+                }
+                className="flex h-6 w-6 items-center justify-center rounded-lg border border-line bg-surface-2 text-sm font-medium text-muted transition hover:border-line-strong hover:text-ink"
+                aria-label="Increase size"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Style toggles */}
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Style</p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setDraftText({ ...draftText, bold: !draftText.bold })}
+                aria-pressed={draftText.bold}
+                aria-label="Bold"
+                className={`flex h-7 flex-1 items-center justify-center rounded-lg border text-sm font-bold transition-all ${
+                  draftText.bold
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line text-muted hover:border-line-strong hover:text-ink'
+                }`}
+              >
+                B
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraftText({ ...draftText, italic: !draftText.italic })}
+                aria-pressed={draftText.italic}
+                aria-label="Italic"
+                className={`flex h-7 flex-1 items-center justify-center rounded-lg border text-sm italic transition-all ${
+                  draftText.italic
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line text-muted hover:border-line-strong hover:text-ink'
+                }`}
+              >
+                I
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraftText({ ...draftText, underline: !draftText.underline })}
+                aria-pressed={draftText.underline}
+                aria-label="Underline"
+                className={`flex h-7 flex-1 items-center justify-center rounded-lg border text-sm underline transition-all ${
+                  draftText.underline
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line text-muted hover:border-line-strong hover:text-ink'
+                }`}
+              >
+                U
+              </button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-2.5 flex justify-end gap-2 border-t border-line pt-2">
+            <button
+              type="button"
+              className="rounded-md px-2 py-1 text-danger transition hover:bg-danger-soft"
+              onClick={() => setDraftText(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="rounded-md bg-accent px-2.5 py-1 font-medium text-accent-ink transition hover:brightness-110 disabled:opacity-45"
+              disabled={!draftText.text.trim()}
+              onClick={() => {
+                const pageH = wrapperRef.current?.getBoundingClientRect().height ?? 1
+                onText({
+                  x: draftText.x,
+                  y: draftText.y,
+                  text: draftText.text.trim(),
+                  color: draftText.color,
+                  fontFamily: draftText.fontFamily,
+                  fontSize: draftText.fontSize / pageH,
+                  bold: draftText.bold,
+                  italic: draftText.italic,
+                  underline: draftText.underline
+                })
+                setDraftText(null)
+              }}
+            >
+              Add text
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

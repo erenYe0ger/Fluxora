@@ -8,6 +8,7 @@ export type {
   TextAnnotation,
   Rect
 } from './types'
+export type { TextAnnotationPatch } from './hooks/useAnnotations'
 export { clampRect, normalizeRect, toCssBox } from './lib/geometry'
 export { useAnnotations } from './hooks/useAnnotations'
 export { AnnotationLayer } from './components/AnnotationLayer'
