@@ -108,7 +108,7 @@ export function ReaderPage() {
           message={failure}
           icon={<FileTextIcon className="h-5 w-5" />}
         >
-          <Button variant="secondary" onClick={() => navigate('/')}>
+          <Button variant="secondary" onClick={() => navigate('/edit-pdf')}>
             Back to library
           </Button>
         </EmptyState>
@@ -121,7 +121,7 @@ export function ReaderPage() {
       <Toolbar
         fileName={meta?.name ?? 'Loading…'}
         numPages={numPages}
-        onBack={() => navigate('/')}
+        onBack={() => navigate('/edit-pdf')}
         onJumpToPage={jumpToPage}
         onExport={exportAnnotations}
         onExportJson={exportAnnotations}

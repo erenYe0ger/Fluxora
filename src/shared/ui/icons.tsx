@@ -229,3 +229,33 @@ export function TextIcon(props: IconProps) {
     </Svg>
   )
 }
+
+export function MergeIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="3" width="10" height="12" rx="2" />
+      <path d="M8 8h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-2" />
+      <path d="M11 15h4" />
+      <path d="M13 13v4" />
+    </Svg>
+  )
+}
+
+export function FileWordIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="m8.5 12 1.5 5 1.5-3.5 1.5 3.5 1.5-5" />
+    </Svg>
+  )
+}
+
+export function ConvertIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M7 8h10l-3-3" />
+      <path d="M17 16H7l3 3" />
+    </Svg>
+  )
+}
