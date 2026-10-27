@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
   Annotation,
   HighlightAnnotation,
@@ -125,12 +125,12 @@ export function useAnnotations(docId: string | undefined) {
   const moveAnnotation = useCallback(
     async (id: string, x: number, y: number) => {
       const target = annotations.find((annotation) => annotation.id === id)
-      if (!target || target.kind !== 'note') return
-      const moved: NoteAnnotation = {
+      if (!target || (target.kind !== 'note' && target.kind !== 'text')) return
+      const moved = {
         ...target,
         x: Math.min(1, Math.max(0, x)),
         y: Math.min(1, Math.max(0, y))
-      }
+      } as Annotation
       await saveAnnotation(moved)
       setAnnotations((prev) =>
         prev.map((annotation) => (annotation.id === id ? moved : annotation))

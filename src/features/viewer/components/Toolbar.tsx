@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useViewerStore } from '../store/viewerStore'
 import { IconButton } from '@shared/ui/IconButton'
 import {
@@ -6,6 +6,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
+  FileTextIcon,
   MinusIcon,
   PanelIcon,
   PlusIcon,
@@ -20,7 +21,9 @@ type Props = {
   numPages: number
   onBack: () => void
   onJumpToPage: (page: number) => void
-  onExport: () => void
+  onExport?: () => void
+  onExportJson?: () => void
+  onExportPdf?: () => void
   onUndo: () => void
   canUndo: boolean
   search: SearchBarState
@@ -32,10 +35,15 @@ export function Toolbar({
   onBack,
   onJumpToPage,
   onExport,
+  onExportJson,
+  onExportPdf,
   onUndo,
   canUndo,
   search
 }: Props) {
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
+
   const scale = useViewerStore((state) => state.scale)
   const sidebarOpen = useViewerStore((state) => state.sidebarOpen)
   const currentPage = useViewerStore((state) => state.currentPage)
@@ -44,12 +52,45 @@ export function Toolbar({
   const zoomOut = useViewerStore((state) => state.zoomOut)
   const setScale = useViewerStore((state) => state.setScale)
 
+  // Dismiss export menu when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!exportOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setExportOpen(false)
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [exportOpen])
+
   const jump = useCallback(
     (page: number) => {
       if (page >= 1 && page <= numPages) onJumpToPage(page)
     },
     [numPages, onJumpToPage]
   )
+
+  const handleExportJson = () => {
+    setExportOpen(false)
+    if (onExportJson) {
+      onExportJson()
+    } else {
+      onExport?.()
+    }
+  }
+
+  const handleExportPdf = () => {
+    setExportOpen(false)
+    onExportPdf?.()
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface/85 backdrop-blur-xl">
@@ -127,9 +168,53 @@ export function Toolbar({
             <UndoIcon />
           </IconButton>
 
-          <IconButton label="Export annotations as JSON" size="sm" onClick={onExport}>
-            <DownloadIcon />
-          </IconButton>
+          <div ref={exportMenuRef} className="relative">
+            <IconButton
+              label="Download options"
+              size="sm"
+              active={exportOpen}
+              onClick={() => setExportOpen((prev) => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+            >
+              <DownloadIcon />
+            </IconButton>
+
+            {exportOpen && (
+              <div
+                role="menu"
+                aria-label="Download options"
+                className="animate-pop absolute right-0 top-full mt-1.5 z-40 w-48 rounded-xl border border-line bg-surface p-1 shadow-lift"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleExportJson}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink transition hover:bg-surface-2"
+                >
+                  <DownloadIcon className="h-4 w-4 text-muted" />
+                  <div>
+                    <p className="font-medium text-ink">JSON export</p>
+                    <p className="text-[10px] text-muted">Annotations data</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleExportPdf}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink transition hover:bg-surface-2"
+                >
+                  <FileTextIcon className="h-4 w-4 text-muted" />
+                  <div>
+                    <p className="font-medium text-ink">PDF export</p>
+                    <p className="text-[10px] text-muted">With annotations baked in</p>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
           <SettingsMenu compact />
         </div>
       </div>

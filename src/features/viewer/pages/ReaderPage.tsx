@@ -10,7 +10,7 @@ import { useViewerStore } from '../store/viewerStore'
 import { useDocumentRecord } from '../hooks/useDocumentRecord'
 import { useReaderLayout } from '../hooks/useReaderLayout'
 import { useReaderShortcuts } from '../hooks/useReaderShortcuts'
-import { AnnotationsPanel, useAnnotations } from '@features/annotations'
+import { AnnotationsPanel, useAnnotations, exportAnnotatedPdf } from '@features/annotations'
 import { useDocumentSearch } from '@features/search'
 import { DEFAULT_TEXT_FONT_FAMILY, useSettingsStore } from '@features/settings'
 import { Button } from '@shared/ui/Button'
@@ -83,6 +83,22 @@ export function ReaderPage() {
     URL.revokeObjectURL(url)
   }, [annotations.annotations, id, meta?.name])
 
+  const exportPdf = useCallback(async () => {
+    if (!meta?.data) return
+    try {
+      const pdfBytes = await exportAnnotatedPdf(meta.data.slice(0), annotations.annotations)
+      const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${(meta?.name ?? 'fluxora').replace(/\.pdf$/i, '')}.annotated.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (cause) {
+      console.error('Failed to export annotated PDF', cause)
+    }
+  }, [annotations.annotations, meta?.data, meta?.name])
+
   const failure = metaError ?? pdfError
   if (failure) {
     return (
@@ -108,6 +124,8 @@ export function ReaderPage() {
         onBack={() => navigate('/')}
         onJumpToPage={jumpToPage}
         onExport={exportAnnotations}
+        onExportJson={exportAnnotations}
+        onExportPdf={exportPdf}
         onUndo={undo}
         canUndo={annotations.canUndo}
         search={search}

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+﻿import type { ReactNode } from 'react'
 
 type IconProps = { className?: string }
 
@@ -222,9 +222,10 @@ export function PencilIcon(props: IconProps) {
 export function TextIcon(props: IconProps) {
   return (
     <Svg {...props}>
-      {/* Serif T: horizontal bar with a clearly visible width, descending vertical stem. */}
-      <path d="M7 4h10" />
-      <path d="M12 4v18" />
+      {/* I-beam text symbol matching the text cursor */}
+      <path d="M8 4h8" />
+      <path d="M12 4v16" />
+      <path d="M8 20h8" />
     </Svg>
   )
 }

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+﻿import { useRef, useState, useEffect } from 'react'
 import type { MouseEvent, PointerEvent as ReactPointerEvent } from 'react'
 import type { PDFPageProxy } from 'pdfjs-dist'
 import { usePageRender } from '../hooks/usePageRender'
@@ -252,9 +252,16 @@ export function PdfPageView({
       // Prevent draft if user clicked on an existing text annotation
       const target = event.target as Element
       if (target.closest('[data-text-annotation]') || target.closest('[data-text-popover]') || target.closest('[data-color-picker-portal]')) return
+      const rawX = (event.clientX - pageBox.left) / pageBox.width
+      const rawY = (event.clientY - pageBox.top) / pageBox.height
+
+      // Clamp coordinates so text placed near the rightmost edge doesn't spill outside the page
+      const clampedX = Math.max(0.02, Math.min(0.72, rawX))
+      const clampedY = Math.max(0.02, Math.min(0.92, rawY))
+
       setDraftText({
-        x: (event.clientX - pageBox.left) / pageBox.width,
-        y: (event.clientY - pageBox.top) / pageBox.height,
+        x: clampedX,
+        y: clampedY,
         text: '',
         color: textColor,
         fontFamily: textFontFamily,
@@ -459,7 +466,7 @@ export function PdfPageView({
           {/* Plain unstyled while typing so it never shows bold/underline */}
           <textarea
             autoFocus
-            rows={2}
+            rows={3}
             placeholder="Type text…"
             className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 font-normal text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
             style={{
@@ -473,25 +480,8 @@ export function PdfPageView({
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 setDraftText(null)
-                return
               }
-              if (event.key === 'Enter' && !event.shiftKey && draftText.text.trim()) {
-                event.preventDefault()
-                const pageH = wrapperRef.current?.getBoundingClientRect().height ?? 1
-                onText({
-                  x: draftText.x,
-                  y: draftText.y,
-                  text: draftText.text.trim(),
-                  color: draftText.color,
-                  fontFamily: draftText.fontFamily,
-                  // Normalise by page height so text scales correctly with zoom
-                  fontSize: draftText.fontSize / pageH,
-                  bold: draftText.bold,
-                  italic: draftText.italic,
-                  underline: draftText.underline
-                })
-                setDraftText(null)
-              }
+              // Enter creates a new line in the text naturally; no auto-submit
             }}
           />
 

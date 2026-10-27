@@ -42,6 +42,33 @@ describe('useAnnotations moveAnnotation', () => {
     expect(stored[0]).toMatchObject({ id: note.id, x: 0.75, y: 0.6 })
   })
 
+  it('moves a text annotation and persists the new position', async () => {
+    const rendered = renderHook(() => useAnnotations(DOC))
+    await waitFor(() => expect(rendered.result.current.loading).toBe(false))
+    await act(async () => {
+      await rendered.result.current.addText({
+        docId: DOC,
+        page: 1,
+        kind: 'text',
+        color: '#1f2937',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: 0.02,
+        bold: false,
+        italic: false,
+        underline: false,
+        x: 0.1,
+        y: 0.2,
+        text: 'move me'
+      })
+    })
+    const textAnnotation = rendered.result.current.annotations.find((a) => a.kind === 'text')!
+    await act(async () => {
+      await rendered.result.current.moveAnnotation(textAnnotation.id, 0.5, 0.6)
+    })
+    const moved = rendered.result.current.annotations.find((a) => a.id === textAnnotation.id)
+    expect(moved).toMatchObject({ x: 0.5, y: 0.6 })
+  })
+
   it('clamps positions into the page', async () => {
     const { result, note } = await seedNote()
 
