@@ -22,16 +22,16 @@ type Props = {
   onDrawThicknessChange: (thickness: number) => void
   drawColor: string
   drawThickness: number
-  onTextColorChange: (color: string) => void
-  onTextFontSizeChange: (fontSize: number) => void
-  onTextBoldChange: (bold: boolean) => void
-  onTextItalicChange: (italic: boolean) => void
-  onTextUnderlineChange: (underline: boolean) => void
-  textColor: string
-  textFontSize: number
-  textBold: boolean
-  textItalic: boolean
-  textUnderline: boolean
+  onTextColorChange?: (color: string) => void
+  onTextFontSizeChange?: (fontSize: number) => void
+  onTextBoldChange?: (bold: boolean) => void
+  onTextItalicChange?: (italic: boolean) => void
+  onTextUnderlineChange?: (underline: boolean) => void
+  textColor?: string
+  textFontSize?: number
+  textBold?: boolean
+  textItalic?: boolean
+  textUnderline?: boolean
 }
 
 const TOOLS: { id: Tool; label: string; hint: string; icon: ReactNode }[] = [
@@ -46,17 +46,7 @@ export function AnnotationToolbar({
   onDrawColorChange,
   onDrawThicknessChange,
   drawColor,
-  drawThickness,
-  onTextColorChange,
-  onTextFontSizeChange,
-  onTextBoldChange,
-  onTextItalicChange,
-  onTextUnderlineChange,
-  textColor,
-  textFontSize,
-  textBold,
-  textItalic,
-  textUnderline
+  drawThickness
 }: Props) {
   const tool = useViewerStore((s) => s.tool)
   const setTool = useViewerStore((s) => s.setTool)
@@ -66,19 +56,18 @@ export function AnnotationToolbar({
   const customHighlightColor = useSettingsStore((s) => s.customHighlightColor)
   const customNoteColor = useSettingsStore((s) => s.customNoteColor)
   const customDrawColor = useSettingsStore((s) => s.customDrawColor)
-  const customTextColor = useSettingsStore((s) => s.customTextColor)
   const setHighlightColor = useSettingsStore((s) => s.setHighlightColor)
   const setNoteColor = useSettingsStore((s) => s.setNoteColor)
   const setCustomHighlightColor = useSettingsStore((s) => s.setCustomHighlightColor)
   const setCustomNoteColor = useSettingsStore((s) => s.setCustomNoteColor)
   const setCustomDrawColor = useSettingsStore((s) => s.setCustomDrawColor)
-  const setCustomTextColor = useSettingsStore((s) => s.setCustomTextColor)
 
-  const isToolActive = tool !== 'select'
+  // Text tool controls live inside the on-page text dialog, so the rightbar remains the tools rail
+  const isToolActive = tool !== 'select' && tool !== 'text'
 
   return (
     <aside className="flex w-40 shrink-0 flex-col border-l border-line bg-surface">
-      {/* ── Vertical tools rail (visible only in select mode) ── */}
+      {/* ── Vertical tools rail (visible in select mode and text mode) ── */}
       {!isToolActive && (
         <div className="flex flex-col gap-0.5 p-1.5">
           {TOOLS.map((item) => (
@@ -103,7 +92,7 @@ export function AnnotationToolbar({
         </div>
       )}
 
-      {/* ── Settings panel (shown only when a tool is active) ── */}
+      {/* ── Settings panel (shown only when highlight, note, or draw is active) ── */}
       {isToolActive && (
         <div className="flex h-full flex-col">
           {/* Header */}
@@ -121,7 +110,6 @@ export function AnnotationToolbar({
               {tool === 'highlight' && 'Highlight'}
               {tool === 'note' && 'Note'}
               {tool === 'draw' && 'Draw'}
-              {tool === 'text' && 'Text'}
             </span>
           </div>
 
@@ -196,90 +184,6 @@ export function AnnotationToolbar({
                           strokeLinecap="round"
                         />
                       </svg>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Text settings ───────────────────────────── */}
-              {tool === 'text' && (
-                <div className="flex flex-col gap-2.5">
-                  <ColorPicker
-                    label="Text"
-                    presets={DRAW_PRESETS}
-                    value={textColor}
-                    customColor={customTextColor}
-                    onChange={onTextColorChange}
-                    onCustomColor={setCustomTextColor}
-                  />
-                  {/* Font size */}
-                  <div className="flex flex-col gap-1">
-                    <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Size</p>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onTextFontSizeChange(Math.max(8, textFontSize - 2))}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-surface-2 text-sm font-medium text-muted transition hover:border-line-strong hover:text-ink"
-                        aria-label="Decrease size"
-                      >
-                        −
-                      </button>
-                      <span className="flex-1 text-center text-xs font-medium tabular-nums text-ink">
-                        {textFontSize}px
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onTextFontSizeChange(Math.min(72, textFontSize + 2))}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-surface-2 text-sm font-medium text-muted transition hover:border-line-strong hover:text-ink"
-                        aria-label="Increase size"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  {/* Style toggles */}
-                  <div className="flex flex-col gap-1">
-                    <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Style</p>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onTextBoldChange(!textBold)}
-                        aria-pressed={textBold}
-                        aria-label="Bold"
-                        className={`flex h-8 flex-1 items-center justify-center rounded-lg border text-sm font-bold transition-all ${
-                          textBold
-                            ? 'border-accent bg-accent text-accent-ink'
-                            : 'border-line text-muted hover:border-line-strong hover:text-ink'
-                        }`}
-                      >
-                        B
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onTextItalicChange(!textItalic)}
-                        aria-pressed={textItalic}
-                        aria-label="Italic"
-                        className={`flex h-8 flex-1 items-center justify-center rounded-lg border text-sm italic transition-all ${
-                          textItalic
-                            ? 'border-accent bg-accent text-accent-ink'
-                            : 'border-line text-muted hover:border-line-strong hover:text-ink'
-                        }`}
-                      >
-                        I
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onTextUnderlineChange(!textUnderline)}
-                        aria-pressed={textUnderline}
-                        aria-label="Underline"
-                        className={`flex h-8 flex-1 items-center justify-center rounded-lg border text-sm transition-all ${
-                          textUnderline
-                            ? 'border-accent bg-accent text-accent-ink'
-                            : 'border-line text-muted hover:border-line-strong hover:text-ink'
-                        } ${textUnderline ? '' : 'underline'}`}
-                      >
-                        U
-                      </button>
                     </div>
                   </div>
                 </div>

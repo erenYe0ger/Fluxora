@@ -9,7 +9,8 @@ import type {
 import type { TextAnnotationPatch } from '../hooks/useAnnotations'
 import { toCssBox } from '../lib/geometry'
 import { NoteIcon } from '@shared/ui/icons'
-import { DRAW_PRESETS } from '@features/settings'
+import { ColorPicker } from '@shared/ui/ColorPicker'
+import { DRAW_PRESETS, useSettingsStore } from '@features/settings'
 
 type Props = {
   annotations: Annotation[]
@@ -61,13 +62,14 @@ export function AnnotationLayer({
     }
   }, [openNote])
 
-  // Close text popover on Escape or outside click.
+  // Close text popover on Escape or outside click (ignoring clicks inside ColorPicker portal).
   useEffect(() => {
     if (!openTextId) return
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Element | null
       if (target?.closest('[data-text-popover]')) return
       if (target?.closest(`[data-text-annotation="${openTextId}"]`)) return
+      if (target?.closest('[data-color-picker-portal]')) return
       setOpenTextId(null)
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -326,6 +328,8 @@ function TextAnnotationPopover({
 }: TextPopoverProps) {
   const [editText, setEditText] = useState(annotation.text)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const customTextColor = useSettingsStore((s) => s.customTextColor)
+  const setCustomTextColor = useSettingsStore((s) => s.setCustomTextColor)
   // Derive CSS font-size from stored normalised value
   const displaySize = Math.round(renderedFontSize)
 
@@ -348,23 +352,22 @@ function TextAnnotationPopover({
   return (
     <div
       data-text-popover
-      className={`animate-pop absolute z-30 w-60 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift ${
+      className={`animate-pop absolute z-30 w-64 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift ${
         openLeft ? 'right-0' : 'left-0'
       } ${openUp ? 'bottom-full mb-2' : 'top-full mt-2'}`}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Editable text content */}
+      {/* Editable text content: plain unstyled while typing so it never shows bold/underline */}
       <textarea
         ref={inputRef}
         rows={2}
         placeholder="Type here…"
-        className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
+        className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 font-normal text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
         style={{
           fontFamily: annotation.fontFamily,
-          fontWeight: annotation.bold ? 'bold' : 'normal',
-          fontStyle: annotation.italic ? 'italic' : 'normal',
-          textDecoration: annotation.underline ? 'underline' : 'none',
-          color: annotation.color
+          fontWeight: 'normal',
+          fontStyle: 'normal',
+          textDecoration: 'none'
         }}
         value={editText}
         onChange={(e) => setEditText(e.target.value)}
@@ -379,28 +382,20 @@ function TextAnnotationPopover({
         onBlur={commitText}
       />
 
-      {/* ── Colour swatches ─────────────────────────────────── */}
+      {/* ── Colour picker with presets + custom color ───────── */}
       <div className="mt-2 flex flex-col gap-1">
         <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Colour</p>
-        <div className="flex items-center gap-1.5">
-          {DRAW_PRESETS.map((preset) => {
-            const active = preset.value.toLowerCase() === annotation.color.toLowerCase()
-            return (
-              <button
-                key={preset.value}
-                type="button"
-                onClick={() => onUpdate({ color: preset.value })}
-                aria-label={preset.name}
-                aria-pressed={active}
-                title={preset.name}
-                className={`h-5 w-5 rounded-full border border-black/10 transition duration-150 hover:scale-110 ${
-                  active ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface' : ''
-                }`}
-                style={{ backgroundColor: preset.value }}
-              />
-            )
-          })}
-        </div>
+        <ColorPicker
+          label="Text"
+          presets={DRAW_PRESETS}
+          value={annotation.color}
+          customColor={customTextColor}
+          onChange={(color) => onUpdate({ color })}
+          onCustomColor={(color) => {
+            setCustomTextColor(color)
+            onUpdate({ color })
+          }}
+        />
       </div>
 
       {/* ── Font size ───────────────────────────────────────── */}

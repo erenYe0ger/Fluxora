@@ -38,12 +38,7 @@ export function pencilCursor(color: string): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 2 22, crosshair`
 }
 
-/** Text cursor: serif "T" glyph matching TextIcon. Horizontal bar is clearly wide. */
+/** Standard I-beam cursor shown in text contexts. */
 export function textCursor(): string {
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32">` +
-    `<path d="M4 4h20" stroke="#0a0c11" stroke-width="3" stroke-linecap="round"/>` +
-    `<path d="M14 4v24" stroke="#0a0c11" stroke-width="3" stroke-linecap="round"/>` +
-    `</svg>`
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 14 4, text`
+  return 'text'
 }

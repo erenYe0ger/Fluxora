@@ -11,7 +11,8 @@ import type { Tool } from '../store/viewerStore'
 import type { Annotation, Rect, TextAnnotationPatch } from '@features/annotations'
 import { clampRect, normalizeRect, toCssBox } from '@features/annotations'
 import { AnnotationLayer } from '@features/annotations'
-import { DRAW_PRESETS } from '@features/settings'
+import { DRAW_PRESETS, useSettingsStore } from '@features/settings'
+import { ColorPicker } from './ColorPicker'
 
 type Props = {
   page: PDFPageProxy
@@ -55,7 +56,7 @@ type Props = {
 /** Composer size in px; used to keep the box inside the page near the right/bottom edge. */
 const NOTE_BOX_WIDTH = 240
 const NOTE_BOX_HEIGHT = 152
-const TEXT_BOX_WIDTH = 248
+const TEXT_BOX_WIDTH = 264
 const TEXT_BOX_HEIGHT = 280
 const EDGE_MARGIN = 8
 
@@ -95,6 +96,9 @@ export function PdfPageView({
   const textLayerRef = useRef<HTMLDivElement>(null)
   const drawCanvasRef = useRef<HTMLCanvasElement>(null)
   const inView = useInView(wrapperRef)
+
+  const customTextColor = useSettingsStore((state) => state.customTextColor)
+  const setCustomTextColor = useSettingsStore((state) => state.setCustomTextColor)
 
   // Use refs for drawing state to avoid closure issues
   const drawingRef = useRef<{
@@ -247,7 +251,7 @@ export function PdfPageView({
     if (currentTool === 'text') {
       // Prevent draft if user clicked on an existing text annotation
       const target = event.target as Element
-      if (target.closest('[data-text-annotation]')) return
+      if (target.closest('[data-text-annotation]') || target.closest('[data-text-popover]') || target.closest('[data-color-picker-portal]')) return
       setDraftText({
         x: (event.clientX - pageBox.left) / pageBox.width,
         y: (event.clientY - pageBox.top) / pageBox.height,
@@ -448,21 +452,21 @@ export function PdfPageView({
       {/* ── Text composer: note-style card with inline style controls ────── */}
       {draftText && textComposerPosition && (
         <div
-          className="animate-pop absolute z-30 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
+          className="animate-pop absolute z-30 w-64 rounded-xl border border-line bg-surface p-2.5 text-xs shadow-lift"
           style={{ left: textComposerPosition.left, top: textComposerPosition.top, width: textComposerPosition.width }}
           onClick={(event) => event.stopPropagation()}
         >
+          {/* Plain unstyled while typing so it never shows bold/underline */}
           <textarea
             autoFocus
             rows={2}
             placeholder="Type text…"
-            className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
+            className="w-full resize-none rounded-lg border border-line bg-surface-2 p-2 font-normal text-ink outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/25"
             style={{
               fontFamily: draftText.fontFamily,
-              fontWeight: draftText.bold ? 'bold' : 'normal',
-              fontStyle: draftText.italic ? 'italic' : 'normal',
-              textDecoration: draftText.underline ? 'underline' : 'none',
-              color: draftText.color
+              fontWeight: 'normal',
+              fontStyle: 'normal',
+              textDecoration: 'none'
             }}
             value={draftText.text}
             onChange={(event) => setDraftText({ ...draftText, text: event.target.value })}
@@ -491,28 +495,20 @@ export function PdfPageView({
             }}
           />
 
-          {/* Colour swatches */}
+          {/* Colour swatches + custom color picker */}
           <div className="mt-2 flex flex-col gap-1">
             <p className="text-[9px] font-medium uppercase tracking-wide text-muted">Colour</p>
-            <div className="flex items-center gap-1.5">
-              {DRAW_PRESETS.map((preset) => {
-                const active = preset.value.toLowerCase() === draftText.color.toLowerCase()
-                return (
-                  <button
-                    key={preset.value}
-                    type="button"
-                    onClick={() => setDraftText({ ...draftText, color: preset.value })}
-                    aria-label={preset.name}
-                    aria-pressed={active}
-                    title={preset.name}
-                    className={`h-5 w-5 rounded-full border border-black/10 transition duration-150 hover:scale-110 ${
-                      active ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface' : ''
-                    }`}
-                    style={{ backgroundColor: preset.value }}
-                  />
-                )
-              })}
-            </div>
+            <ColorPicker
+              label="Text"
+              presets={DRAW_PRESETS}
+              value={draftText.color}
+              customColor={customTextColor}
+              onChange={(color) => setDraftText({ ...draftText, color })}
+              onCustomColor={(color) => {
+                setCustomTextColor(color)
+                setDraftText({ ...draftText, color })
+              }}
+            />
           </div>
 
           {/* Font size */}

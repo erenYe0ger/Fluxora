@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { markerCursor, selectCursor } from './cursor'
+import { markerCursor, selectCursor, textCursor } from './cursor'
 
 const decode = (cursor: string) => decodeURIComponent(cursor)
 
@@ -51,5 +51,11 @@ describe('selectCursor', () => {
   it('falls back to the normal arrow and is encode-safe', () => {
     expect(selectCursor().endsWith(', default')).toBe(true)
     expect(inner(selectCursor())).not.toContain('"')
+  })
+})
+
+describe('textCursor', () => {
+  it('returns standard I-beam text cursor', () => {
+    expect(textCursor()).toBe('text')
   })
 })
