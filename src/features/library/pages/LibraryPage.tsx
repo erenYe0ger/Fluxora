@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLibrary } from '../hooks/useLibrary'
 import { ImportDropzone } from '../components/ImportDropzone'
 import { LibraryList } from '../components/LibraryList'
 import { formatBytes } from '@shared/lib/format'
 import { SettingsMenu } from '@features/settings'
-import { SearchIcon } from '@shared/ui/icons'
+import { ArrowLeftIcon, SearchIcon } from '@shared/ui/icons'
 
 export function LibraryPage() {
   const { docs, loading, error, refresh, importFiles, remove } = useLibrary()
@@ -39,14 +40,28 @@ export function LibraryPage() {
     <div className="app-aura min-h-full">
       <header className="sticky top-0 z-20 border-b border-line bg-bg/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-5 py-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-ink shadow-soft">
-              F
-            </span>
-            <div>
-              <p className="text-sm leading-tight font-semibold tracking-tight">Fluxora</p>
-              <p className="text-[11px] leading-tight text-muted">Local-first PDF reader</p>
-            </div>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-xs font-medium text-muted transition hover:border-line-strong hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:outline-none"
+              aria-label="Back to dashboard tools"
+            >
+              <ArrowLeftIcon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">All tools</span>
+            </Link>
+
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 rounded-lg focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:outline-none"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-ink shadow-soft">
+                F
+              </span>
+              <div>
+                <p className="text-sm leading-tight font-semibold tracking-tight text-ink">Fluxora</p>
+                <p className="text-[11px] leading-tight text-muted">PDF Editor</p>
+              </div>
+            </Link>
           </div>
           <SettingsMenu />
         </div>
@@ -54,7 +69,7 @@ export function LibraryPage() {
 
       <main className="mx-auto flex max-w-4xl flex-col gap-6 px-5 py-8">
         <section className="animate-fade-up">
-          <h1 className="text-xl font-semibold tracking-tight">Your library</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-ink">Your library</h1>
           <p className="mt-1 text-sm text-muted">
             Read, search and annotate PDFs — all of it happens on this device.
           </p>
