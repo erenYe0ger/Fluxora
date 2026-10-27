@@ -148,4 +148,30 @@ describe('exportAnnotatedPdf', () => {
     expect(rawString).toContain('Times-Italic')
     expect(rawString).not.toContain('Ghost')
   })
-})
+  it('handles unicode and special characters without throwing', async () => {
+    const pdfData = await createBlankPdf()
+    const annotations: Annotation[] = [
+      {
+        id: 'text-unicode',
+        docId: 'doc',
+        page: 1,
+        kind: 'text',
+        color: '#1f2937',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: 0.02,
+        bold: false,
+        italic: false,
+        underline: false,
+        x: 0.1,
+        y: 0.1,
+        text: '“Smart quotes” & em—dash & snowman ☃',
+        createdAt: 1
+      } as TextAnnotation
+    ]
+
+    const exportedBytes = await exportAnnotatedPdf(pdfData, annotations)
+    expect(exportedBytes).toBeInstanceOf(Uint8Array)
+    const reloaded = await PDFDocument.load(exportedBytes)
+    expect(reloaded.getPageCount()).toBe(1)
+  })
+});

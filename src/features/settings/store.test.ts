@@ -12,6 +12,10 @@ describe('settings store', () => {
     useSettingsStore.getState().reset()
   })
 
+  it('defaults text font size to 18px', () => {
+    expect(useSettingsStore.getState().textFontSize).toBe(18)
+  })
+
   it('defaults to dark mode', () => {
     expect(useSettingsStore.getState().theme).toBe('dark')
   })

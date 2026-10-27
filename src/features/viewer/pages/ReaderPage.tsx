@@ -8,6 +8,7 @@ import { Toolbar } from '../components/Toolbar'
 import { AnnotationToolbar } from '../components/AnnotationToolbar'
 import { useViewerStore } from '../store/viewerStore'
 import { useDocumentRecord } from '../hooks/useDocumentRecord'
+import { getDocument } from '@shared/lib/documents'
 import { useReaderLayout } from '../hooks/useReaderLayout'
 import { useReaderShortcuts } from '../hooks/useReaderShortcuts'
 import { AnnotationsPanel, useAnnotations, exportAnnotatedPdf } from '@features/annotations'
@@ -79,25 +80,44 @@ export function ReaderPage() {
     const link = document.createElement('a')
     link.href = url
     link.download = `${(meta?.name ?? 'fluxora').replace(/\.pdf$/i, '')}.annotations.json`
+    document.body.appendChild(link)
     link.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(link)
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
   }, [annotations.annotations, id, meta?.name])
 
   const exportPdf = useCallback(async () => {
-    if (!meta?.data) return
     try {
-      const pdfBytes = await exportAnnotatedPdf(meta.data.slice(0), annotations.annotations)
+      let sourceBytes: ArrayBuffer | undefined =
+        meta?.data && meta.data.byteLength > 0 ? meta.data.slice(0) : undefined
+
+      // Fallback: If in-memory buffer was detached or empty, load fresh bytes from IndexedDB
+      if (!sourceBytes && id) {
+        const record = await getDocument(id)
+        if (record?.data && record.data.byteLength > 0) {
+          sourceBytes = record.data.slice(0)
+        }
+      }
+
+      if (!sourceBytes) {
+        console.error('Cannot export PDF: original document data is unavailable')
+        return
+      }
+
+      const pdfBytes = await exportAnnotatedPdf(sourceBytes, annotations.annotations)
       const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.download = `${(meta?.name ?? 'fluxora').replace(/\.pdf$/i, '')}.annotated.pdf`
+      document.body.appendChild(link)
       link.click()
-      URL.revokeObjectURL(url)
+      document.body.removeChild(link)
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch (cause) {
       console.error('Failed to export annotated PDF', cause)
     }
-  }, [annotations.annotations, meta?.data, meta?.name])
+  }, [annotations.annotations, id, meta?.data, meta?.name])
 
   const failure = metaError ?? pdfError
   if (failure) {

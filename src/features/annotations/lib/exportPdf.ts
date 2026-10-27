@@ -121,15 +121,37 @@ function drawFreehand(page: PDFPage, draw: DrawAnnotation) {
   const borderWidth = Math.max(0.5, (draw.thickness ?? 0.004) * pageWidth)
 
   for (const path of draw.paths) {
-    const scaledPath = scaleSvgPath(path, pageWidth, pageHeight)
-    page.drawSvgPath(scaledPath, {
-      x: 0,
-      y: pageHeight,
-      borderColor,
-      borderWidth,
-      borderLineCap: LineCapStyle.Round
-    })
+    if (!path || !path.trim()) continue
+    try {
+      const scaledPath = scaleSvgPath(path, pageWidth, pageHeight)
+      page.drawSvgPath(scaledPath, {
+        x: 0,
+        y: pageHeight,
+        borderColor,
+        borderWidth,
+        borderLineCap: LineCapStyle.Round
+      })
+    } catch (err) {
+      console.warn('Failed to draw freehand path in PDF export', err)
+    }
   }
+}
+
+function sanitizeForStandardFont(font: PDFFont, text: string): string {
+  let sanitized = ''
+  for (const char of text) {
+    try {
+      font.encodeText(char)
+      sanitized += char
+    } catch {
+      if (char === '“' || char === '”') sanitized += '"'
+      else if (char === '‘' || char === '’') sanitized += "'"
+      else if (char === '—' || char === '–') sanitized += '-'
+      else if (char === '…') sanitized += '...'
+      else sanitized += '?'
+    }
+  }
+  return sanitized
 }
 
 async function drawTextAnnotation(
@@ -155,9 +177,10 @@ async function drawTextAnnotation(
   const topY = (1 - textAnno.y) * pageHeight
   const firstBaseline = topY - font.heightAtSize(fontSize, { descender: false })
 
-  const lines = textAnno.text.split('\n')
+  const lines = (textAnno.text || '').split('\n')
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
+    const rawLine = lines[i]
+    const line = sanitizeForStandardFont(font, rawLine)
     const lineY = firstBaseline - i * lineHeight
 
     if (line.length > 0) {
@@ -192,7 +215,7 @@ export async function exportAnnotatedPdf(
   originalBytes: ArrayBuffer,
   annotations: Annotation[]
 ): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(originalBytes)
+  const pdfDoc = await PDFDocument.load(originalBytes, { ignoreEncryption: true, throwOnInvalidObject: false })
   const pages = pdfDoc.getPages()
   const fontCache = new Map<StandardFonts, PDFFont>()
 
